@@ -1,4 +1,4 @@
-def test_basic(self):
+def test_basic():
     from lru import LRU
 
     data = LRU(3)
@@ -7,4 +7,4 @@ def test_basic(self):
     data[3] = None
     data[1]
     data[4] = None
-    self.assertEqual([4, 1, 3], data.keys())
+    assert data.keys == [4, 1, 3]

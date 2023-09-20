@@ -53,7 +53,6 @@ def main():
                 for os_name, platforms in CrossVEnv.HOST_PLATFORMS.items()
                 for platform in platforms
             }
-            print("OS_MAP", OS_MAP)
             host = OS_MAP[parts[0]]
             platforms = [(parts[0], CrossVEnv.BASE_VERSION[host], parts[1])]
         elif len(parts) == 3:

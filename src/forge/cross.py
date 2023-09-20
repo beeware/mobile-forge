@@ -196,9 +196,14 @@ class CrossVEnv:
         print("done.")
 
         print("Updating cross-platform tools...")
-        cross_venv.run(["build-pip", "install", "-U", "pip"])
-        cross_venv.run(["build-pip", "install", "-U", "setuptools"])
-        cross_venv.run(["build-pip", "install", "build", "wheel"])
+        # Ensure the cross environment has the most recent tools
+        cross_venv.pip_install(["pip"], update=True)
+        cross_venv.pip_install(["setuptools"], update=True)
+
+        # Ensure the build environment has the most recent tools
+        cross_venv.pip_install(["pip"], update=True, build=True)
+        cross_venv.pip_install(["setuptools"], update=True, build=True)
+        cross_venv.pip_install(["build", "wheel"], build=True)
 
         print()
         print(f"Cross platform-environment {cross_venv} created.")
@@ -295,12 +300,49 @@ class CrossVEnv:
         return subprocess.check_output(args, **self.cross_kwargs(kwargs))
 
     def run(self, args, **kwargs):
+        """Run a command in the cross environment.
+
+        This passes the provided arguments directly to invocation of ``subprocess.run``;
+        however, the ``kwargs`` will be modified to make the process appear to be in an
+        activated virtual environment. This will:
+
+        * Prepend the cross-env ``bin`` and virtual environment ``bin`` to the ``PATH``,
+          and remove the current virtualenv path.
+        * Set the ``VIRTUAL_ENV`` environment variable
+        * Remove the ``PYTHONHOME`` environment variable, if it exists.
+
+        If ``env`` is passed in as a keyword argument, the values in that environment
+        will be augmented by the virtualenv changes.
+
+        :param args: The list of command line arguments
+        :param kwargs: Any extra arguments to pass to the ``subprocess.run`` invocation.
+        """
         print()
         print(f">>> {shlex.join(args)}")
         for key, value in kwargs.get("env", {}).items():
             print(f"    {key} = {shlex.quote(value)}")
         print()
         return subprocess.run(args, **self.cross_kwargs(kwargs))
+
+    def pip_install(self, packages, update=False, build=False, wheels_path=None):
+        """Install packages into the cross environment.
+
+        :param packages: The list of package names/specifiers to install.
+        :param update: Should the package be updated ("-U")
+        :param build: Should the package be installed in the build environment? Defaults
+            to installing in the host environment.
+        :param wheels_path: A path to search for additional wheels ("--find-links").
+        """
+        # build-pip is a script; pip is a shim with a hashbang that points
+        # at a python interpreter, which we can't invoke with subprocess.
+        self.run(
+            (["build-pip"] if build else ["python", "-m", "pip"])
+            + ["install"]
+            + (["-U"] if update else [])
+            + (["--find-links", str(wheels_path)] if wheels_path else [])
+            + packages,
+            check=True,
+        )
 
 
 def main():

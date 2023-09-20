@@ -1,0 +1,42 @@
+diff -ru cffi-1.15.1-orig/c/malloc_closure.h cffi-1.15.1/c/malloc_closure.h
+--- cffi-1.15.1-orig/c/malloc_closure.h	2022-07-01 00:38:43.000000000 +0800
++++ cffi-1.15.1/c/malloc_closure.h	2022-09-28 12:08:58.000000000 +0800
+@@ -42,6 +42,8 @@
+         return 0;
+     ret = 0;
+
++    /* Chaquopy: getline requires API level 18, but PaX isn't used by Android anyway. */
++    #if __ANDROID_API__ >= 18
+     while (getline (&buf, &len, f) != -1)
+         if (!strncmp (buf, "PaX:", 4))
+             {
+@@ -51,6 +53,8 @@
+                 break;
+             }
+     free (buf);
++    #endif
++
+     fclose (f);
+     return ret;
+ }
+diff -ru cffi-1.15.1-orig/setup.py cffi-1.15.1/setup.py
+--- cffi-1.15.1-orig/setup.py	2022-07-01 00:38:43.000000000 +0800
++++ cffi-1.15.1/setup.py	2022-09-28 12:09:26.000000000 +0800
+@@ -9,8 +9,7 @@
+
+ sources = ['c/_cffi_backend.c']
+ libraries = ['ffi']
+-include_dirs = ['/usr/include/ffi',
+-                '/usr/include/libffi']    # may be changed by pkg-config
++include_dirs = []    # Don't use system include dirs when cross compiling
+ define_macros = [('FFI_BUILDING', '1')]   # for linking with libffi static library
+ library_dirs = []
+ extra_compile_args = []
+@@ -144,7 +143,7 @@
+         sources.extend(os.path.join(COMPILE_LIBFFI, filename)
+                     for filename in _filenames)
+ else:
+-    use_pkg_config()
++    # use_pkg_config()  # pkg-config doesn't work when cross compiling
+     ask_supports_thread()
+     ask_supports_sync_synchronize()

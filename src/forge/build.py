@@ -31,11 +31,31 @@ class Builder(ABC):
     def source_file_path(self) -> Path:
         ...
 
-    def install_host_requirements(self):
-        pass
+    def install_requirements(self, target):
+        requirements = []
+        for requirement in self.package.meta["requirements"][target]:
+            package, version = requirement.split()
+            requirements.append(f"{package}=={version}")
 
-    def install_build_requirements(self):
-        pass
+        if requirements:
+            self.cross_venv.pip_install(
+                requirements,
+                wheels_path=Path.cwd() / "dist",
+                build=target == "build",
+            )
+            self.cross_venv.run(
+                {
+                    "host": ["python", "-m", "pip"],
+                    "build": ["build-pip"],
+                }[target]
+                + [
+                    "install",
+                ]
+                + requirements,
+                check=True,
+            )
+        else:
+            print(f"No {target} requirements.")
 
     @abstractmethod
     def download_source(self):
@@ -71,11 +91,17 @@ class Builder(ABC):
             self.cross_venv.run(
                 ["patch", "-p1", "-i", str(patchfile)],
                 cwd=self.build_path,
+                check=True,
             )
+        else:
+            print("No patches to apply.")
 
     def prepare(self):
-        self.install_host_requirements()
-        self.install_build_requirements()
+        print(f"\n[{self.cross_venv}] Install host requirements")
+        self.install_requirements("host")
+
+        print(f"\n[{self.cross_venv}] Install build requirements")
+        self.install_requirements("build")
 
         if not self.source_file_path.is_file():
             print(f"\n[{self.cross_venv}] Download package sources")
@@ -86,6 +112,29 @@ class Builder(ABC):
 
         print(f"\n[{self.cross_venv}] Apply patches")
         self.apply_patches()
+
+    def compile_env(self, **kwargs) -> dict[str:str]:
+        sysconfig_data = self.cross_venv.sysconfig_data
+        install_root = self.cross_venv.install_root
+
+        ar = sysconfig_data["AR"]
+
+        cc = sysconfig_data["CC"]
+
+        cflags = self.cross_venv.sysconfig_data["CFLAGS"]
+        cflags += f" -I{install_root}/include"
+
+        ldflags = self.cross_venv.sysconfig_data["LDFLAGS"]
+        ldflags += f" -L{install_root}/lib"
+
+        env = {
+            "AR": ar,
+            "CC": cc,
+            "CFLAGS": cflags,
+            "LDFLAGS": ldflags,
+        }
+        env.update(kwargs)
+        return env
 
     @abstractmethod
     def build(self):
@@ -176,35 +225,25 @@ class SimplePackageBuilder(Builder):
                 str(Path.cwd() / "dist"),
                 "--build-number",
                 str(build_num),
-            ]
+            ],
+            check=True,
         )
 
     def compile(self):
-        sysconfig_data = self.cross_venv.sysconfig_data
-        install_root = self.cross_venv.install_root
-
-        cc = sysconfig_data["CC"]
-
-        cflags = self.cross_venv.sysconfig_data["CFLAGS"]
-        cflags += f" -I{install_root}/include"
-
-        ldflags = self.cross_venv.sysconfig_data["LDFLAGS"]
-        ldflags += f" -I{install_root}/lib"
-
         self.cross_venv.run(
             [
                 str(self.package.recipe_path / "build.sh"),
             ],
             cwd=self.build_path,
-            env={
-                "HOST_TRIPLET": self.cross_venv.platform_triplet,
-                "BUILD_TRIPLET": f"{os.uname().machine}-apple-darwin",
-                "CPU_COUNT": str(multiprocessing.cpu_count()),
-                "PREFIX": str(self.build_path / "wheel" / "opt"),
-                "CC": cc,
-                "CFLAGS": cflags,
-                "LDFLAGS": ldflags,
-            },
+            env=self.compile_env(
+                **{
+                    "HOST_TRIPLET": self.cross_venv.platform_triplet,
+                    "BUILD_TRIPLET": f"{os.uname().machine}-apple-darwin",
+                    "CPU_COUNT": str(multiprocessing.cpu_count()),
+                    "PREFIX": str(self.build_path / "wheel" / "opt"),
+                }
+            ),
+            check=True,
         )
 
     def build(self):
@@ -262,4 +301,6 @@ class PythonPackageBuilder(Builder):
                 str(Path.cwd() / "dist"),
             ],
             cwd=self.build_path,
+            env=self.compile_env(),
+            check=True,
         )
