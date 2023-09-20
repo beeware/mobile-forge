@@ -24,7 +24,7 @@ class Package:
         if "/" in package_name_or_recipe:
             self.recipe_path = Path(package_name_or_recipe)
         else:
-            self.recipe_path = Path.cwd() / "packages" / package_name_or_recipe
+            self.recipe_path = Path.cwd() / "recipes" / package_name_or_recipe
 
         if not (self.recipe_path / "meta.yaml").exists():
             raise ValueError(

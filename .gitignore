@@ -10,4 +10,4 @@ __pycache__
 downloads/
 dist/
 venv*/
-packages/*/src
+build/
