@@ -1,0 +1,110 @@
+# A subset of conda syntax
+# (https://docs.conda.io/projects/conda-build/en/latest/resources/define-metadata.html).
+
+type: object
+required: [package]
+properties:
+
+  package:
+    type: object
+    required: [name, version]
+    properties:
+      name:             # Must be in its original form, as used in sdist filenames.
+        type: string
+      version:
+        type: [string, number]
+    additionalProperties: false
+
+  source:
+    default: pypi
+    oneOf:
+      - type: "null"    # The build script will get its own source.
+      - type: string    # Download an sdist from PyPI.
+        const: pypi
+      - type: object    # Download an archive from a URL.
+        required: [url]
+        properties:
+          url:
+            type: string
+        additionalProperties: false
+      - type: object    # Clone a Git repository.
+        required: [git_url, git_rev]
+        properties:
+          git_url:
+            type: string
+          git_rev:
+            type: [string, number]
+        additionalProperties: false
+      - type: object    # Copy a local directory.
+        required: [path]
+        properties:
+          path:
+            type: string
+        additionalProperties: false
+
+  build:
+    type: object
+    default: {}
+    properties:
+      number:           # Used as the wheel build tag.
+        type: integer
+        default: 0
+      script_env:       # Environment variables in the form KEY=value (no spaces around =).
+        type: array
+        default: []
+        items:
+          type: string
+    additionalProperties: false
+
+  requirements:
+    type: object
+    default: {}
+    properties:
+
+      # Requirements which must be installed in the build environment. One of the following:
+      #
+      # * `<package> <version>`: A Python package.
+      # * `cmake`: indicates that CMake is used in the build. A `chaquopy.toolchain.cmake` file
+      #   will be generated in the build directory for use with `-DCMAKE_TOOLCHAIN_FILE`.
+      build:
+        type: array
+        default: []
+        items:
+          type: string
+
+      # Requirements which must be available at runtime. One of the following:
+      #
+      # * `<package> <version>`: a native Python package. A compatible wheel file must exist in
+      #   pypi/dist, and will be extracted into $SRC_DIR/../requirements before the build is
+      #   run. A requirement specification for >= this version will also be added to the final
+      #   wheel.
+      #
+      # * `python`: indicates that this is a Python package. This is implied if `source` is
+      #   `pypi` or unspecified. Python includes and libraries will be added to the CFLAGS and
+      #   LDFLAGS, and the wheel build tag will be set accordingly.
+      #
+      # * `openssl` / `sqlite`: the corresponding library will be added to CFLAGS and LDFLAGS.
+      host:
+        type: array
+        default: []
+        items:
+          type: string
+
+    additionalProperties: false
+
+  about:
+    type: object
+    default: {}
+    properties:
+
+      # Filename, relative to the source directory, to add to the wheel's .dist-info
+      # directory. build-wheel will automatically include any file in the source or recipe
+      # directory whose name starts with "LICEN[CS]E" or "COPYING", case-insensitive. If there
+      # is no such file, then this setting is required.
+      license_file:
+        type: string
+        default: ""
+
+    additionalProperties: false
+
+additionalProperties: false

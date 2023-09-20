@@ -1,0 +1,13 @@
+*.swo
+*.swp
+.envrc
+.vscode/
+*.dist-info
+*.egg-info
+__pycache__
+*.log
+*.DS_Store
+downloads/
+dist/
+venv*/
+packages/*/src

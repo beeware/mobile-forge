@@ -1,0 +1,99 @@
+Mobile Forge
+============
+
+This is a forge-like environment that can be used to build wheels for mobile platforms.
+It is currently only tested for iOS, but in theory, it should also be usable for
+Android. Contributions to verify Android support, and to add more package recipes, are
+definitely encouraged.
+
+Usage
+-----
+
+1. Compile Python for your build platform (e.g., your laptop), and for host platform
+   (e.g., for iOS). It may be helpful to use a project like `Python-Apple-support
+   <https://github.com/beeware/Python-Apple-support>`__ to manage this compilation
+   process.
+
+2. Create and activate a virtual environment using the Python build platform, using the
+   build platform Python compiled in step 1. If you're using Python-App-support, this
+   means::
+
+    $ /path/to/Python-Apple-support/install/macOS/macosx/python-3.11.5/bin/python3.11 -m venv venv3.11
+    $ source venv3.11/bin/activate
+
+4. Clone this repository, and install it into your freshly created virtual environment::
+
+    (venv3.11) $ git clone https://github.com/beeware/mobile-forge.git
+    (venv3.11) $ cd mobile-forge
+    (venv3.11) $ pip install -e .
+
+5. Create a forge environment for the host platform, specifying the platform tag for the
+   host platform. Repeat this step for any other architectures required by your
+   platform. For an iOS build using Python-Apple-support, this means::
+
+    (venv3.11) $ forge-env --platform iphoneos --arch arm64 /path/to/Python-Apple-support/install/iOS/iphoneos.x86_64/python-3.11.5/bin/python3.11
+    (venv3.11) $ forge-env --platform iphonesimulator --arch arm64 /path/to/Python-Apple-support/install/iOS/iphonesimulator.arm64/python-3.11.5/bin/python3.11
+    (venv3.11) $ forge-env --platform iphonesimulator --arch x86_64 /path/to/Python-Apple-support/install/iOS/iphonesimulator.x86_64/python-3.11.5/bin/python3.11
+
+5. Ensure that any tools used by the host Python's setup are present in the current path.
+   In the case of Python-Apple-support, the configuration process creates aliases for the
+   compilers and linkers for each architecture::
+
+    (venv3.11) $ export PATH=$PATH:/path/to/Python-Apple-support/alias
+
+6. Build a package. The ``packages`` folder contains recipes for packages. ``lru-dict``
+   is a good first package to try::
+
+    (venv3.11) $ forge iOS lru-dict
+
+   Or, to build a wheel for a single architecture::
+
+    (venv3.11) $ forge iphonesimulator:12.0:arm64 lru-dict
+
+Once this command completes, there should be a wheel for each platform in the ``dist``
+folder.
+
+To include these wheels in a test project, you can add the ``dist`` folder as a links
+source in your ``requires`` definition in ``pyproject.toml``. For example, the following
+will install the ``lru-dict`` wheels you've just compiled::
+
+    requires = [
+        "--find-links", "/path/to/mobile-forge/dist",
+        "lru-dict",
+    ]
+
+Community
+---------
+
+Mobile Forge is part of the `BeeWare suite`_. You can talk to the community through:
+
+* `@beeware@fosstodon.org on Mastodon <https://fosstodon.org/@beeware>`__
+
+* `Discord <https://beeware.org/bee/chat/>`__
+
+* The Mobile Forge `Github Discussions forum <https://github.com/beeware/mobile-forge/discussions>`__
+
+We foster a welcoming and respectful community as described in our
+`BeeWare Community Code of Conduct`_.
+
+Contributing
+------------
+
+If you experience problems with Mobile Forge, `log them on GitHub`_. If you
+want to contribute code, please `fork the code`_ and `submit a pull request`_.
+
+.. _BeeWare suite: http://beeware.org
+.. _Read The Docs: https://briefcase.readthedocs.io
+.. _BeeWare Community Code of Conduct: http://beeware.org/community/behavior/
+.. _log them on Github: https://github.com/beeware/mobile-forge/issues
+.. _fork the code: https://github.com/beeware/mobile-forge
+.. _submit a pull request: https://github.com/beeware/mobile-forge/pulls
+
+Acknowledgements
+----------------
+
+This project draws significantly on the implementation and knowledge developed in the
+`Chaquopy package builder
+<https://github.com/chaquo/chaquopy/tree/master/server/pypi>`__. Although this is
+largely a "clean room" reimplementation of that project, many details from that project
+have been used in the development of this one.

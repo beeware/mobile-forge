@@ -1,0 +1,68 @@
+[build-system]
+requires = ["setuptools>=60"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mobile-forge"
+version = "2023.0.0"
+description = "A tool to manage building cross-platform binary wheels for mobile devices"
+readme = { file = "README.md", content-type = "text/x-rst"}
+requires-python = ">=3.8"
+license = { file = "LICENSE" }
+authors = [
+    {name = "Russell Keith-Magee", email = "russell@keith-magee.com"}
+]
+maintainers = [
+    {name = "Russell Keith-Magee", email = "russell@keith-magee.com"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3 :: Only",
+    "Topic :: Software Development",
+]
+dependencies = [
+    "jsonschema==4.19.0",
+    "pypi-simple[tqdm]==1.1.0",
+    "PyYAML==6.0.1",
+    "Jinja2==3.1.2",
+    # "git+https://github.com/freakboy3742/crossenv@iOS-support"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit==3.4.0",
+]
+
+[project.urls]
+Homepage = "https://beeware.org"
+Funding = "https://beeware.org/contributing/membership/"
+Repository = "https://github.com/beeware/mobile-forge.git"
+Tracker = "https://github.com/beeware/briefcase/issues"
+
+[project.scripts]
+forge = "forge.__main__:main"
+forge-env = "forge.cross:main"
+
+[tool.isort]
+profile = "black"
+skip_glob = [
+    "docs/conf.py",
+    "venv*",
+    "local",
+]
+multi_line_output = 3
+
+[tool.codespell]
+skip = '.git,*.pdf,*.svg'
+# the way to make case sensitive skips of words etc
+ignore-regex = '\bNd\b'
+# case insensitive
+# ignore-words-list = ''
