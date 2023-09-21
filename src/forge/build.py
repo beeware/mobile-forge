@@ -335,6 +335,12 @@ class PythonPackageBuilder(Builder):
             )
 
     def build(self):
+        # Set up any additional environment variables needed in the script environment.
+        script_env = {}
+        for line in self.package.meta["build"]["script_env"]:
+            key, value = line.split("=", 1)
+            script_env[key] = value
+
         self.cross_venv.run(
             [
                 "python",
@@ -346,6 +352,6 @@ class PythonPackageBuilder(Builder):
                 str(Path.cwd() / "dist"),
             ],
             cwd=self.build_path,
-            env=self.compile_env(),
+            env=self.compile_env(**script_env),
             check=True,
         )
