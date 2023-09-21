@@ -67,6 +67,7 @@ class CrossVEnv:
         # Prime the on-demand variable cache
         self._sysconfig_data = None
         self._install_root = None
+        self._sdk_root = None
 
     def __str__(self):
         return self.venv_name
@@ -128,6 +129,24 @@ class CrossVEnv:
                 )
 
         return self._install_root
+
+    @property
+    def sdk_root(self) -> Path:
+        """The path that contains the platform's SDK.
+
+        This is the root folder where adding `/include` gives the include path, and
+        `/lib` give the library path.
+        """
+        if self._sdk_root is None:
+            # Run a script to get the last element of the cross-venv's sys.path.
+            # This should be the site-packages folder of the cross environment.
+            cross_site_packages = self.check_output(
+                ["xcrun", "--show-sdk-path", "--sdk", self.platform],
+                encoding="UTF-8",
+            ).strip()
+            self._sdk_root = Path(cross_site_packages) / "usr"
+
+        return self._sdk_root
 
     @classmethod
     def _platform_identifier(self, platform, version, arch):
@@ -197,11 +216,9 @@ class CrossVEnv:
 
         print("Updating cross-platform tools...")
         # Ensure the cross environment has the most recent tools
-        cross_venv.pip_install(["pip"], update=True)
         cross_venv.pip_install(["setuptools"], update=True)
 
         # Ensure the build environment has the most recent tools
-        cross_venv.pip_install(["pip"], update=True, build=True)
         cross_venv.pip_install(["setuptools"], update=True, build=True)
         cross_venv.pip_install(["build", "wheel"], build=True)
 
@@ -274,18 +291,34 @@ class CrossVEnv:
         venv_kwargs = kwargs.copy()
         env = venv_kwargs.get("env", {})
 
-        # Remove the current venv from the path, and add the cross-env and the build-env
-        path = os.getenv("PATH").split(":", 1)[1]
+        # Remove the current venv from the path, and add the cross-env and the
+        # build-env, and clean out any other problematic paths.
+        clean_path = [
+            p
+            for p in os.getenv("PATH").split(os.pathsep)[1:]
+            if not (
+                # Exclude rbenv, npm, and other language environments
+                p.startswith("/Users/rkm/.")
+                # Exclude homebrew
+                or p.startswith("/opt")
+                # Exclude local python installs
+                or p.startswith("/Library/Frameworks")
+                # Exclude cryptexd
+                or p.startswith("/var")
+                or p.startswith("/System")
+            )
+        ]
+
         env["PATH"] = os.pathsep.join(
             [
                 str(self.venv_path / "bin"),
                 str(self.venv_path / self.venv_path.name / "bin"),
-                path,
             ]
+            + clean_path
         )
 
         # Set VIRTUALENV to the active venv
-        env["VIRTUAL_ENV"] = self.venv_path / self.venv_path.name
+        env["VIRTUAL_ENV"] = str(self.venv_path / self.venv_path.name)
 
         # Remove PYTHONHOME if it's set
         try:
@@ -306,23 +339,28 @@ class CrossVEnv:
         however, the ``kwargs`` will be modified to make the process appear to be in an
         activated virtual environment. This will:
 
-        * Prepend the cross-env ``bin`` and virtual environment ``bin`` to the ``PATH``,
-          and remove the current virtualenv path.
+        * Modify the ``PATH`` to remove the build virtualenv's bin folder, and add the
+          cross-env's ``bin`` folder, and remove any other path that could be a source
+          of stray libraries (e.g, Homebrew) and remove the current virtualenv path.
         * Set the ``VIRTUAL_ENV`` environment variable
         * Remove the ``PYTHONHOME`` environment variable, if it exists.
 
         If ``env`` is passed in as a keyword argument, the values in that environment
         will be augmented by the virtualenv changes.
 
+        For auditing purposes, the final kwargs used at runtime will be output to the
+        console.
+
         :param args: The list of command line arguments
         :param kwargs: Any extra arguments to pass to the ``subprocess.run`` invocation.
         """
         print()
+        final_kwargs = self.cross_kwargs(kwargs)
         print(f">>> {shlex.join(args)}")
-        for key, value in kwargs.get("env", {}).items():
+        for key, value in final_kwargs.get("env", {}).items():
             print(f"    {key} = {shlex.quote(value)}")
         print()
-        return subprocess.run(args, **self.cross_kwargs(kwargs))
+        return subprocess.run(args, **final_kwargs)
 
     def pip_install(self, packages, update=False, build=False, wheels_path=None):
         """Install packages into the cross environment.

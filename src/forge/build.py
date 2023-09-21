@@ -116,6 +116,7 @@ class Builder(ABC):
     def compile_env(self, **kwargs) -> dict[str:str]:
         sysconfig_data = self.cross_venv.sysconfig_data
         install_root = self.cross_venv.install_root
+        sdk_root = self.cross_venv.sdk_root
 
         ar = sysconfig_data["AR"]
 
@@ -123,9 +124,11 @@ class Builder(ABC):
 
         cflags = self.cross_venv.sysconfig_data["CFLAGS"]
         cflags += f" -I{install_root}/include"
+        cflags += f" -I{sdk_root}/include"
 
         ldflags = self.cross_venv.sysconfig_data["LDFLAGS"]
         ldflags += f" -L{install_root}/lib"
+        ldflags += f" -L{sdk_root}/lib"
 
         env = {
             "AR": ar,
