@@ -5,6 +5,7 @@ import multiprocessing
 import os
 import shutil
 import tarfile
+import zipfile
 from abc import ABC, abstractmethod, abstractproperty
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -68,21 +69,44 @@ class Builder(ABC):
             shutil.rmtree(self.build_path)
 
         print(f"Unpacking {self.source_file_path.relative_to(Path.cwd())}...")
+        # Some packages (e.g., brotli) have uploaded a .tar.gz file... that is
+        # actually a zipfile (!).
+        if tarfile.is_tarfile(self.source_file_path):
+            # This is the equivalent of --strip-components=<strip>
+            def members(tf: tarfile.TarFile, strip=1):
+                for member in tf.getmembers():
+                    parts = member.path.split("/", strip)
+                    try:
+                        member.path = parts[strip]
+                        yield member
+                    except IndexError:
+                        pass
 
-        # This is the equivalent of --strip-components=<strip>
-        def members(tf: tarfile.TarFile, strip=1):
-            for member in tf.getmembers():
-                parts = member.path.split("/", strip)
-                try:
-                    member.path = parts[strip]
-                    yield member
-                except IndexError:
-                    pass
+            with tarfile.open(self.source_file_path) as tf:
+                tf.extractall(
+                    path=self.build_path,
+                    members=members(tf, strip=1),
+                )
+        elif zipfile.is_zipfile(self.source_file_path):
+            # Strip the top level folder.
+            zf = zipfile.ZipFile(self.source_file_path)
 
-        with tarfile.open(self.source_file_path) as tar:
-            tar.extractall(
+            def members(zf, strip=1):
+                for member in zf.infolist():
+                    parts = member.filename.split("/", strip)
+                    try:
+                        member.filename = parts[strip]
+                        yield member
+                    except IndexError:
+                        pass
+
+            zf.extractall(
                 path=self.build_path,
-                members=members(tar, strip=1),
+                members=members(zf, strip=1),
+            )
+        else:
+            raise RuntimeError(
+                f"Can't identify archive type of {self.source_file_path}"
             )
 
     def apply_patches(self):
