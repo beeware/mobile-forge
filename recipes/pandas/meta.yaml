@@ -1,0 +1,9 @@
+package:
+  name: pandas
+  version: 1.5.3
+
+requirements:
+  build:
+    - cython 0.29.32
+  host:
+    - numpy 1.24.2

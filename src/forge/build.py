@@ -86,6 +86,7 @@ class Builder(ABC):
             )
 
     def apply_patches(self):
+        patched = False
         for patchfile in (self.package.recipe_path / "patches").glob("*.patch"):
             print(f"Applying {patchfile.relative_to(self.package.recipe_path)}...")
             self.cross_venv.run(
@@ -93,8 +94,49 @@ class Builder(ABC):
                 cwd=self.build_path,
                 check=True,
             )
-        else:
+            patched = True
+
+        if not patched:
             print("No patches to apply.")
+
+        # If there's a pyproject.toml, make sure the build-system requirements haven't
+        # got hard version locks. numpy does this; it's not compatible with using
+        # non-isolated build environments, which is required if you're using crossenv.
+        #
+        # Also remove any meta-locks; Pandas has "oldest-supported-numpy" as a
+        # requirement, which returns a different version on every Python release, which
+        # doesn't work well with the meta.yaml specification.
+        if (self.build_path / "pyproject.toml").is_file():
+            clean_lines = []
+            update_required = False
+            with (self.build_path / "pyproject.toml").open("r", encoding="utf-8") as f:
+                for line in f:
+                    if any(
+                        hard_lock in line
+                        for hard_lock in [
+                            "setuptools==",
+                            "wheel==",
+                        ]
+                    ):
+                        line = line.replace("==", ">=")
+                        update_required = True
+                    elif any(
+                        ignored in line
+                        for ignored in [
+                            "oldest-supported-numpy",
+                        ]
+                    ):
+                        line = "#" + line
+                        update_required = True
+
+                    clean_lines.append(line)
+
+            if update_required:
+                print("Loosening pyproject.toml build-system dependencies...")
+                with (self.build_path / "pyproject.toml").open(
+                    "w", encoding="utf-8"
+                ) as f:
+                    f.write("".join(clean_lines))
 
     def prepare(self):
         print(f"\n[{self.cross_venv}] Install host requirements")

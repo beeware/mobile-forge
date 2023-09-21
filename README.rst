@@ -38,7 +38,8 @@ Usage
 
 5. Create a forge environment for the host platform, specifying the platform tag for the
    host platform. Repeat this step for any other architectures required by your
-   platform. For an iOS build using Python-Apple-support, this means::
+   platform. For an iOS build using Python-Apple-support, this means creating 3
+   environments::
 
     (venv3.11) $ forge-env --platform iphoneos --arch arm64 /path/to/Python-Apple-support/install/iOS/iphoneos.x86_64/python-3.11.5/bin/python3.11
     (venv3.11) $ forge-env --platform iphonesimulator --arch arm64 /path/to/Python-Apple-support/install/iOS/iphonesimulator.arm64/python-3.11.5/bin/python3.11
