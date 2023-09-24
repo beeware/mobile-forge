@@ -34,7 +34,7 @@ dependencies = [
     "crossenv @ git+https://github.com/freakboy3742/crossenv@iOS-support",
     "httpx==0.25.0",
     "Jinja2==3.1.2",
-    "jsonschema==4.19.0",
+    "jsonschema==4.19.1",
     "pypi-simple[tqdm]==1.1.0",
     "PyYAML==6.0.1",
 ]
