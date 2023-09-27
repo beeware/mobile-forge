@@ -19,7 +19,7 @@ class CrossVEnv:
         "watchOS": "4.0",
     }
 
-    HOST_PLATFORMS = {
+    HOST_SDKS = {
         "android": [
             ("android", "armeabi-v7a"),
             ("android", "arm64-v8a"),
@@ -52,17 +52,15 @@ class CrossVEnv:
         "watchsimulator": "apple-watchos-simulator",
     }
 
-    def __init__(self, platform, platform_version, arch):
-        self.platform = platform
-        self.platform_version = platform_version
+    def __init__(self, sdk, sdk_version, arch):
+        self.sdk = sdk
+        self.sdk_version = sdk_version
         self.arch = arch
 
-        self.platform_identifier = self._platform_identifier(
-            platform, platform_version, arch
-        )
+        self.platform_identifier = self._platform_identifier(sdk, sdk_version, arch)
         self.tag = self.platform_identifier.replace("-", "_").replace(".", "_")
         self.venv_name = f"venv3.{sys.version_info.minor}-{self.tag}"
-        self.platform_triplet = f"{self.arch}-{self.PLATFORM_TRIPLET[platform]}"
+        self.platform_triplet = f"{self.arch}-{self.PLATFORM_TRIPLET[sdk]}"
 
         # Prime the on-demand variable cache
         self._sysconfig_data = None
@@ -79,7 +77,9 @@ class CrossVEnv:
     @property
     def venv_path(self) -> Path:
         """The location of the cross environment on disk."""
-        return Path.cwd() / self.venv_name
+        if self.location is None:
+            raise RuntimeError("Cross environment hasn't been created.")
+        return self.location / self.venv_name
 
     @property
     def sysconfig_data(self) -> dict[str, str]:
@@ -141,7 +141,7 @@ class CrossVEnv:
             # Run a script to get the last element of the cross-venv's sys.path.
             # This should be the site-packages folder of the cross environment.
             cross_site_packages = self.check_output(
-                ["xcrun", "--show-sdk-path", "--sdk", self.platform],
+                ["xcrun", "--show-sdk-path", "--sdk", self.sdk],
                 encoding="UTF-8",
             ).strip()
             self._sdk_root = Path(cross_site_packages) / "usr"
@@ -149,50 +149,60 @@ class CrossVEnv:
         return self._sdk_root
 
     @classmethod
-    def _platform_identifier(self, platform, version, arch):
-        if platform == "android":
+    def _platform_identifier(self, sdk, version, arch):
+        if sdk == "android":
             if version is None:
                 version = 21
-            identifier = f"{platform}-{version}-{arch}"
-        elif platform in {"iphoneos", "iphonesimulator"}:
+            identifier = f"{sdk}-{version}-{arch}"
+        elif sdk in {"iphoneos", "iphonesimulator"}:
             if version is None:
                 version = "12.0"
-            identifier = f"ios-{version}-{platform}-{arch}"
-        elif platform in {"appletvos", "appletvsimulator"}:
+            identifier = f"ios-{version}-{sdk}-{arch}"
+        elif sdk in {"appletvos", "appletvsimulator"}:
             if version is None:
                 version = "7.0"
-            identifier = f"tvos-{version}-{platform}-{arch}"
-        elif platform in {"watchos", "watchsimulator"}:
+            identifier = f"tvos-{version}-{sdk}-{arch}"
+        elif sdk in {"watchos", "watchsimulator"}:
             if version is None:
                 version = "4.0"
-            identifier = f"watchos-{version}-{platform}-{arch}"
+            identifier = f"watchos-{version}-{sdk}-{arch}"
         else:
-            raise ValueError(f"Don't know how to build wheels for {platform}")
+            raise ValueError(f"Don't know how to build wheels for {sdk}")
         return identifier
 
-    @classmethod
-    def create(cls, host_python: Path, platform, platform_version, arch, clean=False):
+    def create(
+        self,
+        location=None,
+        clean=False,
+    ):
         """Create a new cross compilation virtual environment.
 
-        :param host_python: The path to the ``python`` binary for the host platform.
-        :param platform: The host platform for the cross environment.
-        :param platform_version: The minimum compatibility version for the cross environment.
-        :param arch: The architecture for the cross environment.
+        :param location: The location in which to create the cross env. Defaults to the
+            current working directory.
         :param clean: Should a pre-existing environment matching the same descriptor
             be removed and recreated?
         :raises: ``RuntimeError`` if an environment matching the requested host already
             exists, and ``clean=False``.
         """
-        cross_venv = CrossVEnv(platform, platform_version, arch)
+        env_key = f"MOBILE_FORGE_{self.sdk.upper()}_{self.arch.upper()}"
+        host_python = os.getenv(env_key)
+        if host_python is None:
+            raise RuntimeError(
+                f"Host Python not defined. Set the {env_key} environment variable with "
+                "the location of the host Python's binary."
+            )
+        elif not Path(host_python).is_file():
+            raise RuntimeError(f"Environment {self} already exists.")
 
-        if cross_venv.exists():
+        self.location = Path(location).resolve() if location else Path.cwd()
+        if self.exists():
             if clean:
-                print(f"Removing old {cross_venv} environment...")
-                shutil.rmtree(cross_venv.venv_path)
+                print(f"Removing old {self} environment...")
+                shutil.rmtree(self.venv_path)
             else:
-                raise RuntimeError(f"Environment {cross_venv} already exists.")
+                raise RuntimeError(f"Environment {self} already exists.")
 
-        print(f"Creating {cross_venv}...")
+        print(f"Creating {self}...")
         try:
             subprocess.run(
                 [
@@ -200,30 +210,19 @@ class CrossVEnv:
                     "-m",
                     "crossenv",
                     str(host_python),
-                    cross_venv.venv_name,
+                    self.venv_path,
                 ],
                 encoding="UTF-8",
                 check=True,
             )
         except subprocess.CalledProcessError:
-            raise RuntimeError(
-                f"Unable to create cross platform environment {cross_venv}."
-            )
+            raise RuntimeError(f"Unable to create cross platform environment {self}.")
 
         print("Verifying cross-platform environment...")
-        cross_venv.verify()
+        self.verify()
         print("done.")
-
-        print("Updating cross-platform tools...")
-        # Ensure the cross environment has the most recent tools
-        cross_venv.pip_install(["setuptools"], update=True)
-
-        # Ensure the build environment has the most recent tools
-        cross_venv.pip_install(["setuptools"], update=True, build=True)
-        cross_venv.pip_install(["build", "wheel"], build=True)
-
         print()
-        print(f"Cross platform-environment {cross_venv} created.")
+        print(f"Cross platform-environment {self} created.")
 
     def verify(self):
         # python returns the cross-platform host tag.
@@ -375,7 +374,7 @@ class CrossVEnv:
         # at a python interpreter, which we can't invoke with subprocess.
         self.run(
             (["build-pip"] if build else ["python", "-m", "pip"])
-            + ["install"]
+            + ["install", "--only-binary", ":all:"]
             + (["-U"] if update else [])
             + (["--find-links", str(wheels_path)] if wheels_path else [])
             + packages,
@@ -394,24 +393,20 @@ def main():
     )
 
     parser.add_argument(
-        "--platform",
+        "--sdk",
         choices=sorted(
-            {
-                platform[0]
-                for platforms in CrossVEnv.HOST_PLATFORMS.values()
-                for platform in platforms
-            }
+            {sdk[0] for sdks in CrossVEnv.HOST_SDKS.values() for sdk in sdks}
         ),
         required=True,
-        help="The host platform to target.",
+        help="The host SDK to target.",
     )
     parser.add_argument(
-        "--platform-version",
+        "--sdk-version",
         default=None,
-        help="The compatibility version for the host platform.",
+        help="The compatibility version for the host SDK.",
     )
     parser.add_argument(
-        "--arch", required=True, help="The CPU architecture for the host platform."
+        "--arch", required=True, help="The CPU architecture for the host."
     )
     parser.add_argument(
         "host_python",
@@ -423,11 +418,13 @@ def main():
     args = parser.parse_args()
 
     try:
-        CrossVEnv.create(
-            host_python=Path(args.host_python),
-            platform=args.platform,
-            platform_version=args.platform_version,
+        cross_venv = CrossVEnv(
+            sdk=args.sdk,
+            sdk_version=args.sdk_version,
             arch=args.arch,
+        )
+        cross_venv.create(
+            host_python=Path(args.host_python),
             clean=args.clean,
         )
     except RuntimeError as e:

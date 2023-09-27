@@ -4,6 +4,8 @@ import email
 import multiprocessing
 import os
 import shutil
+import subprocess
+import sys
 import tarfile
 import zipfile
 from abc import ABC, abstractmethod, abstractproperty
@@ -13,6 +15,12 @@ from typing import TYPE_CHECKING
 import httpx
 from packaging.utils import canonicalize_name, canonicalize_version
 from pypi_simple import PyPISimple, tqdm_progress_factory
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # pragma: no-cover-if-gte-py310
+    import tomli as tomllib
+
 
 if TYPE_CHECKING:
     from forge.cross import CrossVEnv
@@ -26,17 +34,24 @@ class Builder(ABC):
 
     @abstractproperty
     def build_path(self) -> Path:
+        """The path in which all environment and sources for the build will be
+        created."""
         ...
 
     @abstractproperty
-    def source_file_path(self) -> Path:
+    def source_archive_path(self) -> Path:
+        """The source archive file for the package."""
         ...
 
     def install_requirements(self, target):
         requirements = []
         for requirement in self.package.meta["requirements"][target]:
-            package, version = requirement.split()
-            requirements.append(f"{package}=={version}")
+            try:
+                package, version = requirement.split()
+                specifier = f"{package}=={version}"
+            except ValueError:
+                specifier = requirement
+            requirements.append(specifier)
 
         if requirements:
             self.cross_venv.pip_install(
@@ -64,14 +79,10 @@ class Builder(ABC):
         ...
 
     def unpack_source(self):
-        if self.build_path.is_dir():
-            print(f"Removing {self.build_path.relative_to(Path.cwd())}...")
-            shutil.rmtree(self.build_path)
-
-        print(f"Unpacking {self.source_file_path.relative_to(Path.cwd())}...")
+        print(f"Unpacking {self.source_archive_path.relative_to(Path.cwd())}...")
         # Some packages (e.g., brotli) have uploaded a .tar.gz file... that is
         # actually a zipfile (!).
-        if tarfile.is_tarfile(self.source_file_path):
+        if tarfile.is_tarfile(self.source_archive_path):
             # This is the equivalent of --strip-components=<strip>
             def members(tf: tarfile.TarFile, strip=1):
                 for member in tf.getmembers():
@@ -82,14 +93,14 @@ class Builder(ABC):
                     except IndexError:
                         pass
 
-            with tarfile.open(self.source_file_path) as tf:
+            with tarfile.open(self.source_archive_path) as tf:
                 tf.extractall(
                     path=self.build_path,
                     members=members(tf, strip=1),
                 )
-        elif zipfile.is_zipfile(self.source_file_path):
+        elif zipfile.is_zipfile(self.source_archive_path):
             # Strip the top level folder.
-            zf = zipfile.ZipFile(self.source_file_path)
+            zf = zipfile.ZipFile(self.source_archive_path)
 
             def members(zf, strip=1):
                 for member in zf.infolist():
@@ -106,14 +117,16 @@ class Builder(ABC):
             )
         else:
             raise RuntimeError(
-                f"Can't identify archive type of {self.source_file_path}"
+                f"Can't identify archive type of {self.source_archive_path}"
             )
 
-    def apply_patches(self):
+    def patch_source(self):
         patched = False
         for patchfile in (self.package.recipe_path / "patches").glob("*.patch"):
             print(f"Applying {patchfile.relative_to(self.package.recipe_path)}...")
-            self.cross_venv.run(
+            # This can use a raw subprocess.run because it's a system command,
+            # not anything dependent on the Python environment.
+            subprocess.run(
                 ["patch", "-p1", "-i", str(patchfile)],
                 cwd=self.build_path,
                 check=True,
@@ -123,61 +136,33 @@ class Builder(ABC):
         if not patched:
             print("No patches to apply.")
 
-        # If there's a pyproject.toml, make sure the build-system requirements haven't
-        # got hard version locks. numpy does this; it's not compatible with using
-        # non-isolated build environments, which is required if you're using crossenv.
-        #
-        # Also remove any meta-locks; Pandas has "oldest-supported-numpy" as a
-        # requirement, which returns a different version on every Python release, which
-        # doesn't work well with the meta.yaml specification.
-        if (self.build_path / "pyproject.toml").is_file():
-            clean_lines = []
-            update_required = False
-            with (self.build_path / "pyproject.toml").open("r", encoding="utf-8") as f:
-                for line in f:
-                    if any(
-                        hard_lock in line
-                        for hard_lock in [
-                            "setuptools==",
-                            "wheel==",
-                        ]
-                    ):
-                        line = line.replace("==", ">=")
-                        update_required = True
-                    elif any(
-                        ignored in line
-                        for ignored in [
-                            "oldest-supported-numpy",
-                        ]
-                    ):
-                        line = "#" + line
-                        update_required = True
+    def prepare(self, clean=True):
+        if clean and self.build_path.is_dir():
+            if clean:
+                print(f"\n[{self.cross_venv}] Clean up old builds")
+                print(f"Removing {self.build_path.relative_to(Path.cwd())}...")
+                shutil.rmtree(self.build_path)
 
-                    clean_lines.append(line)
+        if not self.source_archive_path.is_file():
+            print(f"\n[{self.cross_venv}] Download package sources")
+            self.download_source()
 
-            if update_required:
-                print("Loosening pyproject.toml build-system dependencies...")
-                with (self.build_path / "pyproject.toml").open(
-                    "w", encoding="utf-8"
-                ) as f:
-                    f.write("".join(clean_lines))
+        if not self.build_path.is_dir():
+            print(f"\n[{self.cross_venv}] Unpack sources")
+            self.unpack_source()
 
-    def prepare(self):
+            print(f"\n[{self.cross_venv}] Apply patches")
+            self.patch_source()
+
+        # Create a clean cross environment.
+        print(f"\n[{self.cross_venv}] Create clean build environment")
+        self.cross_venv.create(location=self.build_path, clean=True)
+
         print(f"\n[{self.cross_venv}] Install host requirements")
         self.install_requirements("host")
 
         print(f"\n[{self.cross_venv}] Install build requirements")
         self.install_requirements("build")
-
-        if not self.source_file_path.is_file():
-            print(f"\n[{self.cross_venv}] Download package sources")
-            self.download_source()
-
-        print(f"\n[{self.cross_venv}] Unpack sources")
-        self.unpack_source()
-
-        print(f"\n[{self.cross_venv}] Apply patches")
-        self.apply_patches()
 
     def compile_env(self, **kwargs) -> dict[str:str]:
         sysconfig_data = self.cross_venv.sysconfig_data
@@ -189,12 +174,16 @@ class Builder(ABC):
         cc = sysconfig_data["CC"]
 
         cflags = self.cross_venv.sysconfig_data["CFLAGS"]
-        cflags += f" -I{install_root}/include"
-        cflags += f" -I{sdk_root}/include"
+        if (install_root / "include").is_dir():
+            cflags += f" -I{install_root}/include"
+        if (sdk_root / "include").is_dir():
+            cflags += f" -I{sdk_root}/include"
 
         ldflags = self.cross_venv.sysconfig_data["LDFLAGS"]
-        ldflags += f" -L{install_root}/lib"
-        ldflags += f" -L{sdk_root}/lib"
+        if (install_root / "lib").is_dir():
+            ldflags += f" -L{install_root}/lib"
+        if (sdk_root / "lib").is_dir():
+            ldflags += f" -L{sdk_root}/lib"
 
         env = {
             "AR": ar,
@@ -215,7 +204,7 @@ class SimplePackageBuilder(Builder):
     """A builder for projects that have a build.sh entry point."""
 
     @property
-    def source_file_path(self) -> Path:
+    def source_archive_path(self) -> Path:
         url = self.package.meta["source"]["url"]
         filename = url.split("/")[-1]
         return Path.cwd() / "downloads" / filename
@@ -224,9 +213,12 @@ class SimplePackageBuilder(Builder):
     def build_path(self) -> Path:
         # Generate a separate build path for each platform, since we can't guarantee
         # that the Makefile will do a truly clean build for each platform.
+        # The path can be independent of the Python version, because it's not built
+        # against the Python ABI.
         return (
             Path.cwd()
             / "build"
+            / "any"
             / self.package.name
             / self.package.version
             / self.cross_venv.tag
@@ -236,13 +228,19 @@ class SimplePackageBuilder(Builder):
         url = self.package.meta["source"]["url"]
 
         print(f"Downloading {url}...", end="", flush=True)
-        self.source_file_path.parent.mkdir(parents=True, exist_ok=True)
+        self.source_archive_path.parent.mkdir(parents=True, exist_ok=True)
         with httpx.stream("GET", url, follow_redirects=True) as response:
-            with self.source_file_path.open("wb") as f:
+            with self.source_archive_path.open("wb") as f:
                 for chunk in response.iter_bytes():
                     print(".", end="", flush=True)
                     f.write(chunk)
         print(" done.")
+
+    def prepare(self, clean=True):
+        super().prepare(clean=clean)
+
+        print(f"\n[{self.cross_venv}] Installing wheel-building tools")
+        self.cross_venv.pip_install(["wheel"], build=True)
 
     def write_message_file(self, filename, data):
         msg = email.message.Message()
@@ -331,7 +329,7 @@ class PythonPackageBuilder(Builder):
     """A builder for projects available on PyPI."""
 
     @property
-    def source_file_path(self) -> Path:
+    def source_archive_path(self) -> Path:
         return (
             Path.cwd()
             / "downloads"
@@ -340,7 +338,16 @@ class PythonPackageBuilder(Builder):
 
     @property
     def build_path(self) -> Path:
-        return Path.cwd() / "build" / self.package.name / self.package.version
+        # Generate a separate build path for each Python version to ensure we have a
+        # clean build. SDK versions can co-exist because wheel builds are cleanly
+        # separated.
+        return (
+            Path.cwd()
+            / "build"
+            / f"cp3{sys.version_info.minor}"
+            / self.package.name
+            / self.package.version
+        )
 
     def download_source(self):
         with PyPISimple() as client:
@@ -354,9 +361,42 @@ class PythonPackageBuilder(Builder):
 
             client.download_package(
                 sdists[0],
-                path=self.source_file_path,
+                path=self.source_archive_path,
                 progress=tqdm_progress_factory(),
             )
+
+    def prepare(self, clean=True):
+        super().prepare(clean=clean)
+
+        # Install any build requirements (PEP517 or otherwise)
+        if (self.build_path / "pyproject.toml").is_file():
+            print(f"\n[{self.cross_venv}] Install pyproject.toml build requirements")
+
+            # Install the requirements from pyproject.toml
+            with (self.build_path / "pyproject.toml").open("rb") as f:
+                pyproject = tomllib.load(f)
+
+                # Install the build requirements in the cross environment
+                self.cross_venv.pip_install(
+                    ["build"] + pyproject["build-system"]["requires"],
+                    wheels_path=Path.cwd() / "dist",
+                )
+
+                # Install the build requirements in the build environment
+                self.cross_venv.pip_install(
+                    ["build"] + pyproject["build-system"]["requires"],
+                    wheels_path=Path.cwd() / "dist",
+                    build=True,
+                )
+        else:
+            print(f"\n[{self.cross_venv}] Installing non-PEP517 build requirements")
+            # Ensure the cross environment has the most recent tools
+            self.cross_venv.pip_install(["setuptools"], update=True)
+            self.cross_venv.pip_install(["build", "wheel"])
+
+            # Ensure the build environment has the most recent tools
+            self.cross_venv.pip_install(["setuptools"], update=True, build=True)
+            self.cross_venv.pip_install(["build", "wheel"], build=True)
 
     def build(self):
         # Set up any additional environment variables needed in the script environment.
@@ -364,6 +404,9 @@ class PythonPackageBuilder(Builder):
         for line in self.package.meta["build"]["script_env"]:
             key, value = line.split("=", 1)
             script_env[key] = value
+
+        # Set the cross host platform in the environment
+        script_env["_PYTHON_HOST_PLATFORM"] = self.cross_venv.platform_identifier
 
         self.cross_venv.run(
             [
