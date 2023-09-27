@@ -15,16 +15,27 @@ def main():
     parser.add_argument(
         "--clean",
         action="store_true",
-        help=(
-            "Clean the build folder prior to building. A clean is done automatically "
-            "when a top level platform is specified."
-        ),
+        help="Clean the build folder prior to building.",
     )
     parser.add_argument(
-        "-p",
-        "--python-only",
-        action="store_true",
-        help="Only compile the Python packages. Ignored if a build target is specified",
+        "-s",
+        "--subset",
+        choices=[
+            "non-py",
+            "py",
+            "smoke",
+            "smoke-non-py",
+            "smoke-py",
+            "all",
+        ],
+        default="all",
+        help=(
+            "The subset of packages to compile. One of: non-py (all non-Python "
+            "packages), py (all Python packages), smoke (only packages needed "
+            "to do a support testbed check), smoke-non-py (only non-Python "
+            "smoke packages), smoke-py (only Python smoke packages), or all. "
+            "Defaults to all."
+        ),
     )
 
     parser.add_argument(
@@ -54,9 +65,7 @@ def main():
             (sdk, CrossVEnv.BASE_VERSION[args.host], arch)
             for sdk, arch in CrossVEnv.HOST_SDKS[args.host]
         ]
-        clean = True
     except KeyError:
-        clean = args.clean
         parts = args.host.split(":")
         if len(parts) == 2:
             # Derive the base version from the provided SDK
@@ -81,14 +90,22 @@ def main():
             sys.exit(1)
 
     if not args.build_targets:
-        # Default build order
-        if args.python_only:
-            build_targets = []
-        else:
-            build_targets = [
-                "libjpeg",
-                "freetype",
-            ]
+        build_targets = []
+
+        if args.subset in {"all", "non-py", "smoke", "smoke-non-py"}:
+            build_targets.extend(
+                [
+                    "libjpeg",
+                    "freetype",
+                ]
+            )
+
+        if args.subset in {"all", "non-py"}:
+            build_targets.extend(
+                [
+                    "libpng",
+                ]
+            )
 
         # Pandas uses a meta-package called "oldest-supported-numpy" which installs,
         # predictably, the oldest version of numpy known to work on a given Python
@@ -100,17 +117,32 @@ def main():
             11: "numpy:1.23.2",
         }[sys.version_info.minor]
 
-        build_targets.extend(
-            [
-                "lru-dict",
-                "pillow",
-                "numpy",
-                oldest_supported_numpy,
-                "pandas",
-                "cffi",
-                "cryptography",
-            ]
-        )
+        if args.subset in {"all", "py", "smoke", "smoke-py"}:
+            build_targets.extend(
+                [
+                    "lru-dict",
+                    "pillow",
+                    "numpy",
+                    oldest_supported_numpy,
+                    "pandas",
+                    "cffi",
+                    "cryptography",
+                ]
+            )
+
+        if args.subset in {"all", "py"}:
+            build_targets.extend(
+                [
+                    "aiohttp",
+                    "argon2-cffi",
+                    "bcrypt",
+                    "bitarray",
+                    "blis",
+                    "brotli",
+                    "typed-ast",
+                    "yarl",
+                ]
+            )
     else:
         build_targets = args.build_targets
 
@@ -140,7 +172,7 @@ def main():
             print("=" * 80)
             cross_venv = CrossVEnv(sdk=sdk, sdk_version=sdk_version, arch=arch)
             builder = package.builder(cross_venv)
-            builder.prepare(clean=clean and (p == 0))
+            builder.prepare(clean=args.clean and (p == 0))
             print(f"\n[{cross_venv}] Build package")
             builder.build()
 

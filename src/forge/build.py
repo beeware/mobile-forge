@@ -3,6 +3,7 @@ from __future__ import annotations
 import email
 import multiprocessing
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -174,16 +175,32 @@ class Builder(ABC):
         cc = sysconfig_data["CC"]
 
         cflags = self.cross_venv.sysconfig_data["CFLAGS"]
+        # Pre Python 3.11 versions included BZip2 and XZ includes in CFLAGS. Remove them.
+        cflags = re.sub(r"-I.*/merge/iOS/.*/bzip2-.*/include", "", cflags)
+        cflags = re.sub(r"-I.*/merge/iOS/.*/xs-.*/include", "", cflags)
+
+        # Replace any hard-coded reference to --sysroot=<sysroot> with the actual reference
+        cflags = re.sub(r"--sysroot=\w+", f"--sysroot={sdk_root}", cflags)
+
+        # Add the install root and SDK root includes
         if (install_root / "include").is_dir():
             cflags += f" -I{install_root}/include"
-        if (sdk_root / "include").is_dir():
-            cflags += f" -I{sdk_root}/include"
+        if (sdk_root / "usr" / "include").is_dir():
+            cflags += f" -I{sdk_root}/usr/include"
 
         ldflags = self.cross_venv.sysconfig_data["LDFLAGS"]
+        # Pre Python 3.11 versions included BZip2 and XZ includes in CFLAGS. Remove them.
+        cflags = re.sub(r"-I.*/merge/iOS/.*/bzip2-.*/include", "", cflags)
+        cflags = re.sub(r"-I.*/merge/iOS/.*/xs-.*/include", "", cflags)
+
+        # Replace any hard-coded reference to -isysroot <sysroot> with the actual reference
+        cflags = re.sub(r"-isysroot \w+", f"-isysroot={sdk_root}", cflags)
+
+        # Add the install root and SDK root includes
         if (install_root / "lib").is_dir():
             ldflags += f" -L{install_root}/lib"
-        if (sdk_root / "lib").is_dir():
-            ldflags += f" -L{sdk_root}/lib"
+        if (sdk_root / "usr" / "lib").is_dir():
+            ldflags += f" -L{sdk_root}/usr/lib"
 
         env = {
             "AR": ar,
@@ -237,7 +254,8 @@ class SimplePackageBuilder(Builder):
         print(" done.")
 
     def prepare(self, clean=True):
-        super().prepare(clean=clean)
+        # Always clean a non-Python build.
+        super().prepare(clean=True)
 
         print(f"\n[{self.cross_venv}] Installing wheel-building tools")
         self.cross_venv.pip_install(["wheel"], build=True)
@@ -256,6 +274,8 @@ class SimplePackageBuilder(Builder):
         name = canonicalize_name(self.package.name)
         version = canonicalize_version(self.package.version)
         info_path = self.build_path / "wheel" / f"{name}-{version}.dist-info"
+
+        print(f"\n[{self.cross_venv}] Writing wheel metadata")
         info_path.mkdir()
 
         # Write the packaging metadata
@@ -281,6 +301,7 @@ class SimplePackageBuilder(Builder):
         )
 
         # Re-pack the wheel file
+        print(f"\n[{self.cross_venv}] Packing wheel")
         self.cross_venv.run(
             [
                 "build-python",

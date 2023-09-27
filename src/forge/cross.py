@@ -144,7 +144,7 @@ class CrossVEnv:
                 ["xcrun", "--show-sdk-path", "--sdk", self.sdk],
                 encoding="UTF-8",
             ).strip()
-            self._sdk_root = Path(cross_site_packages) / "usr"
+            self._sdk_root = Path(cross_site_packages)
 
         return self._sdk_root
 

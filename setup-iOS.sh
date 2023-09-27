@@ -82,10 +82,10 @@ echo "Build all packages for all iOS targets:"
 echo "   forge iOS"
 echo
 echo "Build only the non-python packages, for all iOS targets:"
-echo "   forge iOS --non-py"
+echo "   forge iOS -s non-py"
 echo
 echo "Build all packages needed for a smoke test, for all iOS targets:"
-echo "   forge iOS --smoke"
+echo "   forge iOS -s smoke"
 echo
 echo "Build lru-dict for all iOS targets:"
 echo "   forge iOS lru-dict"
