@@ -1,0 +1,21 @@
+name: 📦 Package request
+description: Have a specific package that you'd like to see added? Request it herE!
+labels: ["enhancement"]
+
+body:
+
+  - type: input
+    id: package
+    attributes:
+      label: What is PyPI name of the package you would like to see added?
+      placeholder: cryptography
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Additional details
+      description: Are there any other details you can provide?
+    validations:
+      required: false
