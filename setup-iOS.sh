@@ -7,18 +7,18 @@ if [ -z "$1" ]; then
     echo
     echo "    source $0 3.11"
     echo
-    exit 1
+    return
 fi
 PYTHON_VER=$1
 
 if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
     echo "PYTHON_APPLE_SUPPORT not defined."
-    exit 1
+    return
 fi
 
 if [ ! -d $PYTHON_APPLE_SUPPORT/install ]; then
     echo "PYTHON_APPLE_SUPPORT does not point at a valid loation."
-    exit 1
+    return
 fi
 
 PYTHON_FOLDER=$(echo `ls -1d $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VER.*` | sort -n -r | head -n1)
@@ -27,22 +27,22 @@ PYTHON_VERSION=$(basename $PYTHON_FOLDER | cut -d "-" -f 2)
 if [ ! -x $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
     echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION macOS binary."
     echo $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VERSION/bin/python$PYTHON_VER
-    exit 1
+    return
 fi
 
 if [ ! -e $PYTHON_APPLE_SUPPORT/install/iOS/iphoneos.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
     echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION iOS ARM64 device binary."
-    exit 1
+    return
 fi
 
 if [ ! -e $PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
     echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION iOS ARM64 simulator binary."
-    exit 1
+    return
 fi
 
 if [ ! -e $PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.x86_64/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
     echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION iOS x86-64 simulator binary."
-    exit 1
+    return
 fi
 
 if [ ! -z "$VIRTUAL_ENV" ]; then

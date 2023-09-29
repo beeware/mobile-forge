@@ -1,0 +1,22 @@
+# This package is required because "oldest-supported-numpy" has problems with the ARM64
+# era. There are a number of Python versions for which the minimum supported numpy
+# version *on ARM64* is different to the minimum supported version on x86_64.
+#
+# For example, on Python 3.9, the default minimum supported version (which is the
+# version picked up for iOS) is 1.19.3; but the minimum supported version on ARM64
+# is 1.21.0. This results in the build and cross environments being inconsistent,
+# which breaks the build.
+#
+# This recipe defines a patched version of oldest-supported-numpy, which reports as
+# v2999.1.1 (so it will always take priority), that has platform independent, fixed
+# rules for the minimum dependent version.
+#
+# It produces a py3-none-any wheel, so it only needs to be built once; it's included
+# in the non-py targets, which results in wasted work, but it's a quick build, so
+# we don't care too much.
+#
+# The resulting wheel should *not* be published; it just needs to exist to satisfy
+# the build process.
+package:
+  name: oldest-supported-numpy
+  version: 2023.8.3

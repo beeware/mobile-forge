@@ -374,7 +374,12 @@ class CrossVEnv:
         # at a python interpreter, which we can't invoke with subprocess.
         self.run(
             (["build-pip"] if build else ["python", "-m", "pip"])
-            + ["install", "--only-binary", ":all:"]
+            + [
+                "install",
+                "--disable-pip-version-check",
+                "--only-binary",
+                ":all:",
+            ]
             + (["-U"] if update else [])
             + (["--find-links", str(wheels_path)] if wheels_path else [])
             + packages,

@@ -26,6 +26,7 @@ def main():
             "smoke",
             "smoke-non-py",
             "smoke-py",
+            "non-smoke",
             "all",
         ],
         default="all",
@@ -33,8 +34,8 @@ def main():
             "The subset of packages to compile. One of: non-py (all non-Python "
             "packages), py (all Python packages), smoke (only packages needed "
             "to do a support testbed check), smoke-non-py (only non-Python "
-            "smoke packages), smoke-py (only Python smoke packages), or all. "
-            "Defaults to all."
+            "smoke packages), smoke-py (only Python smoke packages), non-smoke "
+            "(all non-smoke packages), or all. Defaults to all."
         ),
     )
 
@@ -95,12 +96,13 @@ def main():
         if args.subset in {"all", "non-py", "smoke", "smoke-non-py"}:
             build_targets.extend(
                 [
+                    "oldest-supported-numpy",
                     "libjpeg",
                     "freetype",
                 ]
             )
 
-        if args.subset in {"all", "non-py"}:
+        if args.subset in {"all", "non-py", "non-smoke"}:
             build_targets.extend(
                 [
                     "libpng",
@@ -111,8 +113,8 @@ def main():
         # predictably, the oldest version of numpy known to work on a given Python
         # version. This is done for Python ABI compatibility.
         oldest_supported_numpy = {
-            8: "numpy:1.21.0",
-            9: "numpy:1.21.0",
+            8: "numpy:1.17.3",
+            9: "numpy:1.19.3",
             10: "numpy:1.21.6",
             11: "numpy:1.23.2",
         }[sys.version_info.minor]
@@ -130,7 +132,7 @@ def main():
                 ]
             )
 
-        if args.subset in {"all", "py"}:
+        if args.subset in {"all", "py", "non-smoke"}:
             build_targets.extend(
                 [
                     "aiohttp",

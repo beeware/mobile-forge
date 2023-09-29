@@ -76,6 +76,38 @@ If you're *not* using Python-Apple-support, the setup process requires more manu
 Once this command completes, there should be a wheel for each platform in the ``dist``
 folder.
 
+The special snowflakes
+~~~~~~~~~~~~~~~~~~~~~~
+
+Mobile Forge is trying to support multiple packages, building on multiple Python
+versions, for multiple architectures; and some of those Python versions were released
+before the release of ARM64 macOS hardware. As a result, some versions of some packages
+have some quirks that must be taken into account.
+
+Pandas
+^^^^^^
+
+Pandas uses a meta-package named ``oldest-supported-numpy`` to ensure ABI compatibility
+during compilation. However, this can install a different version of numpy, depending on
+the platform. This is especially problematic for Python 3.9, because the minimum
+supported version for Python 3.9 on ARM64 is different to the version that is installed
+for x86_64. Mobile-forge produces a replacement ``oldest-supported-numpy`` package, tagged
+as version 2999.1.1, which ensures that consistent versions are available for build
+purposes; however, this wheel *should not* be published.
+
+Cryptography
+^^^^^^^^^^^^
+
+Cryptography currently builds a *very* old version (3.4.8). This is the last version
+that could be built without a Rust compiler. The recipe works as is on all Python
+versions *except* Python 3.8 on ARM64, because there was no ARM64-compatible wheel
+published for cffi 1.15.1. However, if you run::
+
+    $ pip wheel -w dist --no-deps cffi==1.15.1
+
+you can build a universal Python3.8 CFFI wheel for CFFI 1.15.1, which can be used to
+satisfy this build-time requirement.
+
 What now?
 ---------
 
@@ -87,6 +119,115 @@ example, the following will install the ``lru-dict`` wheels you've just compiled
         "--find-links", "/path/to/mobile-forge/dist",
         "lru-dict",
     ]
+
+Adding your own packages
+------------------------
+
+If there's a package that you want that doesn't have an existing recipe, you can add a
+recipe for that package.
+
+Create a directory in ``recipes``. The name of the directory must be in PyPI normalized
+form (PEP 503). Alternatively, you can create this directory somewhere else, and pass
+its path when calling ``forge``.
+
+Inside the recipe directory, add the following files.
+
+* A `meta.yaml` file. This supports a subset of Conda syntax, defined in `meta-schema.yaml`.
+* A `test.py` file (or `test` package), to run on a target installation. This should contain a
+  pytest suite which imports the package and does some basic checks.
+* Optionally, one or more patch files in a folder named ``patches``. These patches will be
+  applied when the source code is unpacked for a given platform.
+* For non-Python packages, a ``build.sh`` script. This is the script that will be executed
+  in the build environment build the package. This script should invoke any ``configure``,
+  ``make``, or any other compilation steps needed to build the package. This script will be
+  executed in an environment that defines the following environment variables:
+
+    - ``AR`` - the ``AR`` value used to compile the host Python, as determined from
+      ``sysconfig``
+    - ``CC`` - the ``CC`` value used to compile the host Python, as determined from
+      ``sysconfig``.
+    - ``CFLAGS`` - the ``CFLAGS`` value used to compile the host Python, as determined
+      from ``sysconfig``, augmented with the include paths for the SDK, and
+      ``opt/include`` in the host environment's site-packages.
+    - ``LDFLAGS`` - the ``CFLAGS`` value used to compile the host Python, as determined
+      from ``sysconfig``, augmented with the library paths for the SDK, and
+      ``opt/lib`` in the host environment's site-packages.
+    - ``CPU_COUNT`` - The number of CPUs that are available, as determined by
+      ``multiprocessing.cpu_count()``
+    - ``HOST_TRIPLET`` - the GCC compiler triplet for the host platform (e.g.,
+      ``aarch64-apple-ios12.0-simulator``)
+    - ``BUILD_TRIPLET`` - the GCC compiler triplet for the build platform (e.g.,
+      ``aarch64-apple-darwin``)
+    - ``PREFIX`` - a location where the compiled package can be installed in preparation
+      for packaging.
+
+  This script should install the package into ``$PREFIX``. Mobile Forge will package any
+  content installed into ``$PREFIX`` into a "wheel" that can be installed as a host
+  requirement.
+
+Python-based projects
+~~~~~~~~~~~~~~~~~~~~~
+
+All Python projects are compiled using ``python -m build``, using a clean `crossenv
+<https://github.com/benfogle/crossenv>`__ virtual environment for each platform of a
+package. Any PEP518 build requirements will be included in both the host and build
+environments.
+
+If you're lucky, all you'll need to do is define a ``meta.yaml`` that describes the
+package name and version: e.g.,::
+
+    package:
+      name: blis
+      version: 0.4.1
+
+If this doesn't result in a successful build, it will likely be for one of 3 reasons:
+
+1. **The build process has a dependency on a system library**. For example, Pillow has a
+   dependency on ``libjpeg``. ``libjpeg`` isn't available on PyPI; but it *is* possible
+   to build a "wheel" for ``libjpeg``, so it can be specified as a requirement.
+
+   A non-python "wheel" is constructed by compiling the package for your target platform,
+   then installing it into a folder named ``opt``. As a result of this "install", you'll
+   usually end up with an ``opt/include`` and ``opt/lib`` folder; Mobile Forge will then
+   wrap up this ``opt`` folder in a wheel, along with Python wheel metadata.
+
+   When this "wheel" is specified as a host requirement, the "wheel" will be unpacked
+   into the site packages folder of your cross-compilation host environment. This path
+   the ``include`` and ``lib`` paths will be automatically included in the
+   ``CFLAGS``/``LDFLAGS`` environment variables when the Python build is executed.
+
+2. **The build process has a dependency on external tooling**. Mobile Forge will
+   configure a C and C++ compiler using the same configuration that was used to compile
+   the support libraries; however a package may require addition build tooling (e.g., a
+   Fortran compiler) to complete the build. If this is the case, you'll need to find a
+   version of the tool that can target mobile platforms, and work out how to modify the
+   build process to apply any necessary compiler flags.
+
+3. **The build script has platform-specific logic**. For example,
+   if the ``setup.py`` file contain an ``if sys.platform == ...`` clauses, it is unlikely
+   that a mobile platform will trigger the right logic.
+
+If you need to make any alterations to a project's source code for a build to succeed,
+you can provide those patches by putting them in one or more files in a folder named
+``patches`` in the recipe folder. These patches will be applied once the source code
+has been unpacked.
+
+Configure-based projects
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+If the project includes a `configure` script, you will likely need to provide a patch
+for `config.sub`. `config.sub` is the tools used by `configure` to identify the
+architecture and machine type; however, it doesn't currently recognize the host triples
+used by Apple. If you get the error::
+
+    checking host system type... Invalid configuration `arm64-apple-ios': machine `arm64-apple' not recognized
+    configure: error: /bin/sh config/config.sub arm64-apple-ios failed
+
+you will need to patch `config.sub`. There are several examples of patched `config.sub`
+scripts in the packages contained in this repository, and in the Python-Apple-support
+project; it is quite possible one of those patches can be used for the library you are
+trying to compile. The `config.sub` script has a datestamp at the top of the file; that
+can be used to identify which patch you will need.
 
 Community
 ---------

@@ -60,17 +60,6 @@ class Builder(ABC):
                 wheels_path=Path.cwd() / "dist",
                 build=target == "build",
             )
-            self.cross_venv.run(
-                {
-                    "host": ["python", "-m", "pip"],
-                    "build": ["build-pip"],
-                }[target]
-                + [
-                    "install",
-                ]
-                + requirements,
-                check=True,
-            )
         else:
             print(f"No {target} requirements.")
 
@@ -89,8 +78,9 @@ class Builder(ABC):
                 for member in tf.getmembers():
                     parts = member.path.split("/", strip)
                     try:
-                        member.path = parts[strip]
-                        yield member
+                        if parts[strip]:
+                            member.path = parts[strip]
+                            yield member
                     except IndexError:
                         pass
 
@@ -107,8 +97,9 @@ class Builder(ABC):
                 for member in zf.infolist():
                     parts = member.filename.split("/", strip)
                     try:
-                        member.filename = parts[strip]
-                        yield member
+                        if parts[strip]:
+                            member.filename = parts[strip]
+                            yield member
                     except IndexError:
                         pass
 
@@ -128,7 +119,7 @@ class Builder(ABC):
             # This can use a raw subprocess.run because it's a system command,
             # not anything dependent on the Python environment.
             subprocess.run(
-                ["patch", "-p1", "-i", str(patchfile)],
+                ["patch", "-p1", "--ignore-whitespace", "--input", str(patchfile)],
                 cwd=self.build_path,
                 check=True,
             )
@@ -159,10 +150,10 @@ class Builder(ABC):
         print(f"\n[{self.cross_venv}] Create clean build environment")
         self.cross_venv.create(location=self.build_path, clean=True)
 
-        print(f"\n[{self.cross_venv}] Install host requirements")
+        print(f"\n[{self.cross_venv}] Install forge host requirements")
         self.install_requirements("host")
 
-        print(f"\n[{self.cross_venv}] Install build requirements")
+        print(f"\n[{self.cross_venv}] Install forge build requirements")
         self.install_requirements("build")
 
     def compile_env(self, **kwargs) -> dict[str:str]:
