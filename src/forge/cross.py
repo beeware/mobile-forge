@@ -297,7 +297,7 @@ class CrossVEnv:
             for p in os.getenv("PATH").split(os.pathsep)[1:]
             if not (
                 # Exclude rbenv, npm, and other language environments
-                p.startswith("/Users/rkm/.")
+                p.startswith(f"{Path.home() / '.'}")
                 # Exclude homebrew
                 or p.startswith("/opt")
                 # Exclude local python installs
