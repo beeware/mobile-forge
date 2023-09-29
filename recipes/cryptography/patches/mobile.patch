@@ -1,0 +1,12 @@
+diff -ru cryptography-41.0.4-orig/src/rust/cryptography-cffi/build.rs cryptography-41.0.4/src/rust/cryptography-cffi/build.rs
+--- cryptography-41.0.4-orig/src/rust/cryptography-cffi/build.rs	2023-09-20 00:20:46
++++ cryptography-41.0.4/src/rust/cryptography-cffi/build.rs	2023-09-29 13:05:45
+@@ -11,7 +11,7 @@
+     let openssl_static = env::var("OPENSSL_STATIC")
+         .map(|x| x == "1")
+         .unwrap_or(false);
+-    if target.contains("apple") && openssl_static {
++    if target.contains("apple-darwin") && openssl_static {
+         // On (older) OSX we need to link against the clang runtime,
+         // which is hidden in some non-default path.
+         //

@@ -158,6 +158,7 @@ Inside the recipe directory, add the following files.
       ``aarch64-apple-ios12.0-simulator``)
     - ``BUILD_TRIPLET`` - the GCC compiler triplet for the build platform (e.g.,
       ``aarch64-apple-darwin``)
+    - ``CARGO_BUILD_TARGET`` - the Rust cargo build target for the platform
     - ``PREFIX`` - a location where the compiled package can be installed in preparation
       for packaging.
 

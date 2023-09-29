@@ -1,16 +1,14 @@
 package:
   name: cryptography
-  version: 3.4.8
+  version: 41.0.4
 
 build:
   script_env:
-    - CRYPTOGRAPHY_DONT_BUILD_RUST=1
+    - OPENSSL_STATIC=1
+    - OPENSSL_DIR={platlib}/opt
 
 requirements:
   build:
-    - cffi 1.15.1
-    - setuptools-rust 0.11.6
-    # "setuptools_rust @ git+https://github.com/freakboy3742/setuptools_rust@iOS-support",
+    - setuptools_rust @ git+https://github.com/freakboy3742/setuptools-rust@iOS-support
   host:
-    - openssl 1.1.1v
-    # - openssl 3.1.2
+    - openssl 3.1.2
