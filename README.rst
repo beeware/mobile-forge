@@ -180,7 +180,8 @@ package name and version: e.g.,::
       name: blis
       version: 0.4.1
 
-If this doesn't result in a successful build, it will likely be for one of 3 reasons:
+If this doesn't result in a successful build, it will likely be for one of the following
+reasons:
 
 1. **The build process has a dependency on a system library**. For example, Pillow has a
    dependency on ``libjpeg``. ``libjpeg`` isn't available on PyPI; but it *is* possible
