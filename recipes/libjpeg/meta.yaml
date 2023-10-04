@@ -2,8 +2,11 @@ package:
   name: libjpeg
   version: 1.5.3
 
-build:
-  number: 1
-
 source:
   url: https://downloads.sourceforge.net/project/libjpeg-turbo/1.5.3/libjpeg-turbo-1.5.3.tar.gz
+
+patches:
+  - mobile.patch
+
+build:
+  number: 1

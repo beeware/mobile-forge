@@ -320,7 +320,7 @@ class CrossVEnv:
             for p in os.getenv("PATH").split(os.pathsep)[1:]
             if not (
                 # Exclude rbenv, npm, and other language environments, except for rust/cargo.
-                (p.startswith(f"{Path.home() / '.'}") and not p.endswith("/.cargo/bin"))
+                (p.startswith(f"{Path.home()}/.") and not p.endswith("/.cargo/bin"))
                 # Exclude homebrew
                 or p.startswith("/opt")
                 # Exclude local python installs
@@ -400,11 +400,22 @@ class CrossVEnv:
             + [
                 "install",
                 "--disable-pip-version-check",
-                "--only-binary",
-                ":all:",
             ]
+            # If we're doing a host build, require binary packages.
+            # build environment can use non-binary packages.
+            + (
+                []
+                if build
+                else [
+                    "--only-binary",
+                    ":all:",
+                ]
+            )
+            # Update packages if requested
             + (["-U"] if update else [])
+            # Include the local wheels path if provided.
             + (["--find-links", str(wheels_path)] if wheels_path else [])
+            # Finally, the list of packages to install.
             + packages,
             check=True,
         )

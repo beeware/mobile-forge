@@ -42,6 +42,14 @@ properties:
             type: string
         additionalProperties: false
 
+  # Patches to apply to the code. Each entry is a filename in the `patches` folder
+  # of the recipe.
+  patches:
+    type: array
+    default: []
+    items:
+      type: string
+
   build:
     type: object
     default: {}

@@ -3,7 +3,8 @@ repos:
     rev: v4.4.0
     hooks:
       - id: check-toml
-      - id: check-yaml
+      # Recipes are templates, not pure YAML
+      # - id: check-yaml
       - id: check-case-conflict
       - id: check-docstring-first
       - id: end-of-file-fixer

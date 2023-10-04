@@ -1,3 +1,6 @@
 package:
   name: blis
   version: 0.4.1
+
+patches:
+  - mobile.patch

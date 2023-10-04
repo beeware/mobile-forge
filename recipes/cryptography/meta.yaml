@@ -2,6 +2,9 @@ package:
   name: cryptography
   version: 41.0.4
 
+patches:
+  - random.patch
+
 build:
   script_env:
     - OPENSSL_STATIC=1

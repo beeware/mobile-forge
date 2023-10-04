@@ -22,6 +22,7 @@ def main():
         "--subset",
         choices=[
             "non-py",
+            "py-any",
             "py",
             "smoke",
             "smoke-non-py",
@@ -32,7 +33,8 @@ def main():
         default="all",
         help=(
             "The subset of packages to compile. One of: non-py (all non-Python "
-            "packages), py (all Python packages), smoke (only packages needed "
+            "packages), py-any (python packages that aren't platform dependent), "
+            "py (all Python packages), smoke (only packages needed "
             "to do a support testbed check), smoke-non-py (only non-Python "
             "smoke packages), smoke-py (only Python smoke packages), non-smoke "
             "(all non-smoke packages), or all. Defaults to all."
@@ -90,13 +92,21 @@ def main():
             print()
             sys.exit(1)
 
+    # Targets that generate py3-none-any wheels only need to be built on a single
+    # platform.
+    py_any_targets = [
+        "oldest-supported-numpy",
+    ]
+
     if not args.build_targets:
         build_targets = []
+
+        if args.subset in {"all", "py-any", "smoke"}:
+            build_targets.extend(py_any_targets)
 
         if args.subset in {"all", "non-py", "smoke", "smoke-non-py"}:
             build_targets.extend(
                 [
-                    "oldest-supported-numpy",
                     "libjpeg",
                     "freetype",
                 ]
@@ -117,6 +127,7 @@ def main():
             9: "numpy:1.19.3",
             10: "numpy:1.21.6",
             11: "numpy:1.23.2",
+            12: "numpy:1.26.0",
         }[sys.version_info.minor]
 
         if args.subset in {"all", "py", "smoke", "smoke-py"}:
@@ -125,7 +136,17 @@ def main():
                     "lru-dict",
                     "pillow",
                     "numpy",
-                    oldest_supported_numpy,
+                ]
+                # for Python 3.12, the oldest supported numpy *is* the only version of
+                # numpy that is supported.
+                + (
+                    [
+                        oldest_supported_numpy,
+                    ]
+                    if sys.version_info.minor != 12
+                    else []
+                )
+                + [
                     "pandas",
                     "cffi",
                     "cryptography",
@@ -168,7 +189,14 @@ def main():
             build_number=build_number,
         )
 
-        for p, (sdk, sdk_version, arch) in enumerate(platforms):
+        # Packages that generate -py3-none-any wheels only need to be built on a single platform.
+        if package_name_or_recipe in py_any_targets:
+            build_platforms = platforms[:1]
+        else:
+            build_platforms = platforms
+
+        # Build the package for each required platform.
+        for p, (sdk, sdk_version, arch) in enumerate(build_platforms):
             print("=" * 80)
             print(f"Building {package} for {sdk} {sdk_version} on {arch}")
             print("=" * 80)

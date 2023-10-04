@@ -10,6 +10,7 @@ if [ -z "$1" ]; then
     return
 fi
 PYTHON_VER=$1
+CMAKE_VERSION="3.27.4"
 
 if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
     echo "PYTHON_APPLE_SUPPORT not defined."
@@ -45,6 +46,21 @@ if [ ! -e $PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.x86_64/python-$PYTHO
     return
 fi
 
+# Ensure CMake is installed
+if ! [ -d "tools/CMake.app" ]; then
+    if ! [ -f "downloads/cmake-${CMAKE_VERSION}-macos-universal.tar.gz" ]; then
+        echo "Downloading CMake"
+        mkdir -p downloads
+        curl --location "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-macos-universal.tar.gz" --output downloads/cmake-${CMAKE_VERSION}-macos-universal.tar.gz
+    fi
+
+    echo "Installing CMake"
+    mkdir -p tools
+    tar -xzf downloads/cmake-${CMAKE_VERSION}-macos-universal.tar.gz
+    mv cmake-${CMAKE_VERSION}-macos-universal/CMake.app tools
+    rm -rf cmake-${CMAKE_VERSION}-macos-universal
+fi
+
 if [ ! -z "$VIRTUAL_ENV" ]; then
     deactivate
 fi
@@ -69,7 +85,16 @@ else
     source ./venv$PYTHON_VER/bin/activate
 fi
 
-export PATH=$PATH:$PYTHON_APPLE_SUPPORT/install/iOS/bin
+# Create wheels for ninja that can be installed in the host environment
+if ! [ -f "dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl" ]; then
+    echo "Downloading Ninja"
+    python -m pip wheel --no-deps -w dist ninja==1.11.1
+    mv dist/ninja-1.11.1-*.whl dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl
+    cp dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl dist/ninja-1.11.1-py3-none-ios_12_0_iphonesimulator_x86_64.whl
+    cp dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl dist/ninja-1.11.1-py3-none-ios_12_0_iphonesimulator_arm64.whl
+fi
+
+export PATH="$PATH:$PYTHON_APPLE_SUPPORT/install/iOS/bin:$(pwd)/tools/CMake.app/Contents/bin"
 
 export MOBILE_FORGE_IPHONEOS_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphoneos.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
 export MOBILE_FORGE_IPHONESIMULATOR_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
