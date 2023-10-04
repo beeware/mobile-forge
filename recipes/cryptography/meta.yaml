@@ -2,6 +2,9 @@ package:
   name: cryptography
   version: 3.4.8
 
+patches:
+  - random.patch
+
 build:
   script_env:
     - CRYPTOGRAPHY_DONT_BUILD_RUST=1

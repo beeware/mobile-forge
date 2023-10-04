@@ -2,6 +2,9 @@ package:
   name: Pillow
   version: 9.4.0
 
+patches:
+  - setup.patch
+
 requirements:
   host:
     # PNG support is internal: libpng is not used.

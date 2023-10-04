@@ -114,7 +114,8 @@ class Builder(ABC):
 
     def patch_source(self):
         patched = False
-        for patchfile in (self.package.recipe_path / "patches").glob("*.patch"):
+        for patch in self.package.meta["patches"]:
+            patchfile = self.package.recipe_path / "patches" / patch
             print(f"Applying {patchfile.relative_to(self.package.recipe_path)}...")
             # This can use a raw subprocess.run because it's a system command,
             # not anything dependent on the Python environment.
@@ -200,6 +201,20 @@ class Builder(ABC):
             "LDFLAGS": ldflags,
         }
         env.update(kwargs)
+
+        # Add in some user environment keys that are useful
+        env.update(
+            {
+                key: os.environ.get(key)
+                for key in [
+                    "TMPDIR",
+                    "USER",
+                    "HOME",
+                    "LANG",
+                    "TERM",
+                ]
+            }
+        )
         return env
 
     @abstractmethod

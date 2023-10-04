@@ -136,7 +136,17 @@ def main():
                     "lru-dict",
                     "pillow",
                     "numpy",
-                    oldest_supported_numpy,
+                ]
+                # for Python 3.12, the oldest supported numpy *is* the only version of
+                # numpy that is supported.
+                + (
+                    [
+                        oldest_supported_numpy,
+                    ]
+                    if sys.version_info.minor != 12
+                    else []
+                )
+                + [
                     "pandas",
                     "cffi",
                     "cryptography",

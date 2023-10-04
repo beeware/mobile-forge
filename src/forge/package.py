@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from copy import deepcopy
 from pathlib import Path
 
@@ -67,18 +66,13 @@ class Package:
 
         with (self.recipe_path / "meta.yaml").open(encoding="utf-8") as f:
             meta_template = f.read()
-            if override_version:
-                # If there's an override version, look for any {% set version... %}
-                # content in the template, and ensure it is replaced with the
-                # override version.
-                meta_template = re.sub(
-                    r'{% set version = ".*?" %}',
-                    f'{{% set version = "{override_version}" %}}',
-                    meta_template,
-                )
 
         # Render the meta template.
-        meta_str = jinja2.Template(meta_template).render()
+        meta_str = jinja2.Template(meta_template).render(
+            version=tuple(int(v) for v in override_version.split("."))
+            if override_version
+            else None
+        )
 
         # Parse the rendered meta template
         meta = yaml.safe_load(meta_str)

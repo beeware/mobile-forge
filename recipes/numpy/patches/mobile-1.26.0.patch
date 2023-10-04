@@ -1,0 +1,111 @@
+diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/environment.py numpy-1.26.0/vendored-meson/meson/mesonbuild/environment.py
+--- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/environment.py	1970-01-01 08:00:00
++++ numpy-1.26.0/vendored-meson/meson/mesonbuild/environment.py	2023-10-02 14:33:03
+@@ -290,7 +290,7 @@
+     """
+     if mesonlib.is_windows():
+         trial = detect_windows_arch(compilers)
+-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix():
++    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_qnx() or mesonlib.is_aix() or mesonlib.is_ios() or mesonlib.is_tvos() or mesonlib.is_watchos():
+         trial = platform.processor().lower()
+     else:
+         trial = platform.machine().lower()
+@@ -356,7 +356,7 @@
+ def detect_cpu(compilers: CompilersDict) -> str:
+     if mesonlib.is_windows():
+         trial = detect_windows_arch(compilers)
+-    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix():
++    elif mesonlib.is_freebsd() or mesonlib.is_netbsd() or mesonlib.is_openbsd() or mesonlib.is_aix() or mesonlib.is_ios() or mesonlib.is_tvos() or mesonlib.is_watchos():
+         trial = platform.processor().lower()
+     else:
+         trial = platform.machine().lower()
+diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/utils/universal.py numpy-1.26.0/vendored-meson/meson/mesonbuild/utils/universal.py
+--- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/utils/universal.py	1970-01-01 08:00:00
++++ numpy-1.26.0/vendored-meson/meson/mesonbuild/utils/universal.py	2023-10-02 13:52:21
+@@ -133,6 +133,9 @@
+     'is_netbsd',
+     'is_openbsd',
+     'is_osx',
++    'is_ios',
++    'is_tvos',
++    'is_watchos',
+     'is_qnx',
+     'is_sunos',
+     'is_windows',
+@@ -626,6 +629,18 @@
+
+ def is_osx() -> bool:
+     return platform.system().lower() == 'darwin'
++
++
++def is_ios() -> bool:
++    return platform.system().lower() == 'ios'
++
++
++def is_tvos() -> bool:
++    return platform.system().lower() == 'tvos'
++
++
++def is_watchos() -> bool:
++    return platform.system().lower() == 'watchos'
+
+
+ def is_linux() -> bool:
+diff -ru numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py numpy-1.26.0/vendored-meson/meson-python/mesonpy/__init__.py
+--- numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py	1970-01-01 08:00:00
++++ numpy-1.26.0/vendored-meson/meson-python/mesonpy/__init__.py	2023-10-03 14:23:24
+@@ -133,7 +133,7 @@
+
+ _SUFFIXES = importlib.machinery.all_suffixes()
+ _EXTENSION_SUFFIXES = importlib.machinery.EXTENSION_SUFFIXES
+-_EXTENSION_SUFFIX_REGEX = re.compile(r'^\.(?:(?P<abi>[^.]+)\.)?(?:so|pyd|dll)$')
++_EXTENSION_SUFFIX_REGEX = re.compile(r'^\.(?:(?P<abi>[^.]+)\.)?(?:so|pyd|dll|dylib)$')
+ assert all(re.match(_EXTENSION_SUFFIX_REGEX, x) for x in _EXTENSION_SUFFIXES)
+
+
+@@ -665,7 +665,8 @@
+         self._install_dir.mkdir(exist_ok=True, parents=True)
+
+         # setuptools-like ARCHFLAGS environment variable support
+-        if sysconfig.get_platform().startswith('macosx-'):
++        sysconfig_platform = sysconfig.get_platform()
++        if sysconfig_platform.startswith('macosx-'):
+             archflags = os.environ.get('ARCHFLAGS', '').strip()
+             if archflags:
+                 arch, *other = filter(None, (x.strip() for x in archflags.split('-arch')))
+@@ -689,6 +690,35 @@
+                     ''')
+                     self._meson_cross_file.write_text(cross_file_data)
+                     self._meson_args['setup'].extend(('--cross-file', os.fspath(self._meson_cross_file)))
++        elif sysconfig_platform.startswith("ios-"):
++            arch = sysconfig_platform.split("-")[-1]
++            family = "aarch64" if arch == "arm64" else arch
++            cross_file_data = textwrap.dedent(
++                f"""
++                [binaries]
++                c = [{sysconfig.get_config_var("CC")!r}]
++                cpp = [{sysconfig.get_config_var("CC")!r}]
++                cmake = ['cmake']
++
++                [host_machine]
++                system = 'ios'
++                cpu = {arch!r}
++                cpu_family = {family!r}
++                endian = 'little'
++
++                [properties]
++                longdouble_format = 'IEEE_DOUBLE_LE'
++            """
++            )
++            self._meson_cross_file.write_text(cross_file_data)
++            self._meson_args["setup"].extend(
++                (
++                    # Include the Meson cross-compilation file
++                    "--cross-file", os.fspath(self._meson_cross_file),
++                    # Disable BLAS
++                    "-Dallow-noblas=true",
++                )
++            )
+
+         # load pyproject.toml
+         pyproject = tomllib.loads(self._source_dir.joinpath('pyproject.toml').read_text())
