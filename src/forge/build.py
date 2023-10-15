@@ -15,7 +15,8 @@ from typing import TYPE_CHECKING
 
 import httpx
 from packaging.utils import canonicalize_name, canonicalize_version
-from pypi_simple import PyPISimple, tqdm_progress_factory
+
+from forge.pypi import get_pypi_source_urls
 
 try:
     import tomllib
@@ -37,6 +38,11 @@ class Builder(ABC):
     def build_path(self) -> Path:
         """The path in which all environment and sources for the build will be
         created."""
+        ...
+
+    @abstractproperty
+    def log_file_path(self) -> Path:
+        """The path where build logs should be written."""
         ...
 
     @abstractproperty
@@ -64,9 +70,20 @@ class Builder(ABC):
             print(f"No {target} requirements.")
 
     @abstractmethod
+    def download_source_url(self):
+        ...
+
     def download_source(self):
         """Download the source tarball."""
-        ...
+        url = self.download_source_url()
+        print(f"Downloading {url}...", end="", flush=True)
+        self.source_archive_path.parent.mkdir(parents=True, exist_ok=True)
+        with httpx.stream("GET", url, follow_redirects=True) as response:
+            with self.source_archive_path.open("wb") as f:
+                for chunk in response.iter_bytes():
+                    print(".", end="", flush=True)
+                    f.write(chunk)
+        print(" done.")
 
     def unpack_source(self):
         print(f"Unpacking {self.source_archive_path.relative_to(Path.cwd())}...")
@@ -217,8 +234,27 @@ class Builder(ABC):
         )
         return env
 
+    def build(self, clean):
+        try:
+            self.prepare(clean=clean)
+            self._build()
+            return True
+        except Exception as e:
+            print("*" * 80)
+            print(
+                f"Failed build: {self.package} for {self.cross_venv.sdk} "
+                f"{self.cross_venv.sdk_version} on {self.cross_venv.arch}"
+            )
+            print("*" * 80)
+            with (
+                self.log_file_path.parent / (self.log_file_path.name + ".error")
+            ).open("w", encoding="utf-8") as f:
+                f.write(str(e))
+            print()
+            return False
+
     @abstractmethod
-    def build(self):
+    def _build(self):
         """Build the package."""
         ...
 
@@ -247,17 +283,17 @@ class SimplePackageBuilder(Builder):
             / self.cross_venv.tag
         )
 
-    def download_source(self):
-        url = self.package.meta["source"]["url"]
+    @property
+    def log_file_path(self) -> Path:
+        return (
+            Path.cwd()
+            / "build"
+            / "any"
+            / f"{self.package.name}-{self.package.version}-{self.cross_venv.tag}.log"
+        )
 
-        print(f"Downloading {url}...", end="", flush=True)
-        self.source_archive_path.parent.mkdir(parents=True, exist_ok=True)
-        with httpx.stream("GET", url, follow_redirects=True) as response:
-            with self.source_archive_path.open("wb") as f:
-                for chunk in response.iter_bytes():
-                    print(".", end="", flush=True)
-                    f.write(chunk)
-        print(" done.")
+    def download_source_url(self):
+        return self.package.meta["source"]["url"]
 
     def prepare(self, clean=True):
         # Always clean a non-Python build.
@@ -340,7 +376,7 @@ class SimplePackageBuilder(Builder):
             check=True,
         )
 
-    def build(self):
+    def _build(self):
         self.compile()
         self.make_wheel()
 
@@ -348,7 +384,7 @@ class SimplePackageBuilder(Builder):
 class CMakePackageBuilder(SimplePackageBuilder):
     """A builder for cmake-based projects."""
 
-    def build(self):
+    def _build(self):
         pass
 
 
@@ -376,21 +412,17 @@ class PythonPackageBuilder(Builder):
             / self.package.version
         )
 
-    def download_source(self):
-        with PyPISimple() as client:
-            page = client.get_project_page(self.package.name)
-            sdists = [
-                package
-                for package in page.packages
-                if package.package_type == "sdist"
-                and package.version == self.package.version
-            ]
+    @property
+    def log_file_path(self) -> Path:
+        return (
+            Path.cwd()
+            / "build"
+            / f"cp3{sys.version_info.minor}"
+            / f"{self.package.name}-{self.package.version}-{self.cross_venv.tag}.log"
+        )
 
-            client.download_package(
-                sdists[0],
-                path=self.source_archive_path,
-                progress=tqdm_progress_factory(),
-            )
+    def download_source_url(self):
+        return get_pypi_source_urls(self.package.name)[self.package.version]
 
     def prepare(self, clean=True):
         super().prepare(clean=clean)
@@ -425,7 +457,7 @@ class PythonPackageBuilder(Builder):
             self.cross_venv.pip_install(["setuptools"], update=True, build=True)
             self.cross_venv.pip_install(["build", "wheel"], build=True)
 
-    def build(self):
+    def _build(self):
         # Set up any additional environment variables needed in the script environment.
         script_env = {}
         for line in self.package.meta["build"]["script_env"]:

@@ -118,3 +118,6 @@ echo
 echo "Build lru-dict for the ARM64 device target:"
 echo "   forge iphoneos:arm64 lru-dict"
 echo
+echo "Build all applicable versions of lru-dict for all iOS targets:"
+echo "   forge iOS --all-versions lru-dict"
+echo

@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from forge.cross import CrossVEnv
 from forge.package import Package
+from forge.pypi import get_pypi_versions
 
 
 def main():
@@ -16,6 +18,11 @@ def main():
         "--clean",
         action="store_true",
         help="Clean the build folder prior to building.",
+    )
+    parser.add_argument(
+        "--all-versions",
+        action="store_true",
+        help="Build all appropriate versions of each package.",
     )
     parser.add_argument(
         "-s",
@@ -137,7 +144,7 @@ def main():
                     "pillow",
                     "numpy",
                 ]
-                # for Python 3.12, the oldest supported numpy *is* the only version of
+                # On Python 3.12, the oldest supported numpy *is* the only version of
                 # numpy that is supported.
                 + (
                     [
@@ -169,42 +176,78 @@ def main():
     else:
         build_targets = args.build_targets
 
+    failures = []
     for build_target in build_targets:
-        parts = build_target.split(":")
-        package_name_or_recipe = parts[0]
+        if Path(build_target).is_dir():
+            # If the build target is a directory, just build what it says.
+            if args.all_versions:
+                print("Ignoring --all-versions on an explicit recipe")
 
-        try:
-            version = parts[1] if parts[1] else None
-            try:
-                build_number = int(parts[2])
-            except IndexError:
-                build_number = None
-        except IndexError:
-            version = None
+            package_name_or_recipe = build_target
             build_number = None
-
-        package = Package(
-            package_name_or_recipe,
-            version=version,
-            build_number=build_number,
-        )
-
-        # Packages that generate -py3-none-any wheels only need to be built on a single platform.
-        if package_name_or_recipe in py_any_targets:
-            build_platforms = platforms[:1]
+            target_versions = [None]
         else:
-            build_platforms = platforms
+            # Target is a recipe. Look for version/build overrides
+            parts = build_target.split(":")
+            package_name_or_recipe = parts[0]
 
-        # Build the package for each required platform.
-        for p, (sdk, sdk_version, arch) in enumerate(build_platforms):
-            print("=" * 80)
-            print(f"Building {package} for {sdk} {sdk_version} on {arch}")
-            print("=" * 80)
-            cross_venv = CrossVEnv(sdk=sdk, sdk_version=sdk_version, arch=arch)
-            builder = package.builder(cross_venv)
-            builder.prepare(clean=args.clean and (p == 0))
-            print(f"\n[{cross_venv}] Build package")
-            builder.build()
+            try:
+                requested_version = parts[1] if parts[1] else None
+                try:
+                    build_number = int(parts[2])
+                except IndexError:
+                    build_number = None
+            except IndexError:
+                requested_version = None
+                build_number = None
+
+            # If --all-versions was specified, build the list of versions.
+            if args.all_versions:
+                if requested_version:
+                    print("Specific version requested; ignoring --all-versions")
+                    target_versions = [requested_version]
+                else:
+                    target_versions = get_pypi_versions(package_name_or_recipe)
+            else:
+                target_versions = [requested_version]
+
+        for version in target_versions:
+            package = Package(
+                package_name_or_recipe,
+                version=version,
+                build_number=build_number,
+            )
+
+            # First build of each version must be clean;
+            # subsequent builds will be isolated by
+
+            first = True
+            # Packages that generate -py3-none-any wheels only need to be built on a single platform.
+            if package_name_or_recipe in py_any_targets:
+                build_platforms = platforms[:1]
+            else:
+                build_platforms = platforms
+
+            # Build the package for each required platform.
+            for sdk, sdk_version, arch in build_platforms:
+                print("=" * 80)
+                print(f"Building {package} for {sdk} {sdk_version} on {arch}")
+                print("=" * 80)
+                cross_venv = CrossVEnv(sdk=sdk, sdk_version=sdk_version, arch=arch)
+                builder = package.builder(cross_venv)
+                print(f"\n[{cross_venv}] Build package")
+                success = builder.build(clean=first)
+
+                # If the build was successful, subsequent passes don't need to be clean.
+                if success:
+                    first = False
+                else:
+                    failures.append((package_name_or_recipe, version, cross_venv.tag))
+
+    if failures:
+        print("Failed builds for:")
+        for name, version, tag in failures:
+            print(f" * {name} {version} ({tag})")
 
 
 if __name__ == "__main__":
