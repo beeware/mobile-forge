@@ -176,6 +176,7 @@ def main():
     else:
         build_targets = args.build_targets
 
+    successes = []
     failures = []
     for build_target in build_targets:
         if Path(build_target).is_dir():
@@ -230,24 +231,30 @@ def main():
 
             # Build the package for each required platform.
             for sdk, sdk_version, arch in build_platforms:
-                print("=" * 80)
-                print(f"Building {package} for {sdk} {sdk_version} on {arch}")
-                print("=" * 80)
                 cross_venv = CrossVEnv(sdk=sdk, sdk_version=sdk_version, arch=arch)
                 builder = package.builder(cross_venv)
-                print(f"\n[{cross_venv}] Build package")
                 success = builder.build(clean=first)
 
                 # If the build was successful, subsequent passes don't need to be clean.
                 if success:
                     first = False
+                    successes.append((package_name_or_recipe, version, cross_venv.tag))
                 else:
                     failures.append((package_name_or_recipe, version, cross_venv.tag))
 
+    if successes:
+        print()
+        print("Successful builds for:")
+        for name, version, tag in successes:
+            print(f" * {name} {version if version else '(default version)'} ({tag})")
+
     if failures:
+        print()
         print("Failed builds for:")
         for name, version, tag in failures:
-            print(f" * {name} {version} ({tag})")
+            print(f" * {name} {version if version else '(default version)'} ({tag})")
+
+    print()
 
 
 if __name__ == "__main__":

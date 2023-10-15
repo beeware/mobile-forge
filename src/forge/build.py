@@ -1,21 +1,22 @@
 from __future__ import annotations
 
-import email
 import multiprocessing
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tarfile
 import zipfile
 from abc import ABC, abstractmethod, abstractproperty
+from email import generator, message
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import httpx
 from packaging.utils import canonicalize_name, canonicalize_version
 
+from forge import subprocess
+from forge.logger import log, log_exception
 from forge.pypi import get_pypi_source_urls
 
 try:
@@ -45,6 +46,11 @@ class Builder(ABC):
         """The path where build logs should be written."""
         ...
 
+    @property
+    def error_log_file_path(self) -> Path:
+        """The path for the log file if a build error occurs."""
+        return self.log_file_path.parent.parent / "errors" / self.log_file_path.name
+
     @abstractproperty
     def source_archive_path(self) -> Path:
         """The source archive file for the package."""
@@ -62,12 +68,13 @@ class Builder(ABC):
 
         if requirements:
             self.cross_venv.pip_install(
+                self.log_file,
                 requirements,
                 wheels_path=Path.cwd() / "dist",
                 build=target == "build",
             )
         else:
-            print(f"No {target} requirements.")
+            log(self.log_file, f"No {target} requirements.")
 
     @abstractmethod
     def download_source_url(self):
@@ -76,17 +83,21 @@ class Builder(ABC):
     def download_source(self):
         """Download the source tarball."""
         url = self.download_source_url()
-        print(f"Downloading {url}...", end="", flush=True)
+        log(self.log_file, f"Downloading {url}...", end="", flush=True)
         self.source_archive_path.parent.mkdir(parents=True, exist_ok=True)
         with httpx.stream("GET", url, follow_redirects=True) as response:
             with self.source_archive_path.open("wb") as f:
-                for chunk in response.iter_bytes():
-                    print(".", end="", flush=True)
+                for i, chunk in enumerate(response.iter_bytes()):
+                    if i % 100 == 0:
+                        log(self.log_file, ".", end="", flush=True)
                     f.write(chunk)
-        print(" done.")
+        log(self.log_file, " done.")
 
     def unpack_source(self):
-        print(f"Unpacking {self.source_archive_path.relative_to(Path.cwd())}...")
+        log(
+            self.log_file,
+            f"Unpacking {self.source_archive_path.relative_to(Path.cwd())}...",
+        )
         # Some packages (e.g., brotli) have uploaded a .tar.gz file... that is
         # actually a zipfile (!).
         if tarfile.is_tarfile(self.source_archive_path):
@@ -133,45 +144,51 @@ class Builder(ABC):
         patched = False
         for patch in self.package.meta["patches"]:
             patchfile = self.package.recipe_path / "patches" / patch
-            print(f"Applying {patchfile.relative_to(self.package.recipe_path)}...")
+            log(
+                self.log_file,
+                f"Applying {patchfile.relative_to(self.package.recipe_path)}...",
+            )
             # This can use a raw subprocess.run because it's a system command,
             # not anything dependent on the Python environment.
             subprocess.run(
+                self.log_file,
                 ["patch", "-p1", "--ignore-whitespace", "--input", str(patchfile)],
                 cwd=self.build_path,
-                check=True,
             )
             patched = True
 
         if not patched:
-            print("No patches to apply.")
+            log(self.log_file, "No patches to apply.")
 
     def prepare(self, clean=True):
         if clean and self.build_path.is_dir():
             if clean:
-                print(f"\n[{self.cross_venv}] Clean up old builds")
-                print(f"Removing {self.build_path.relative_to(Path.cwd())}...")
+                log(self.log_file, f"\n[{self.cross_venv}] Clean up old builds")
+                log(
+                    self.log_file,
+                    f"Removing {self.build_path.relative_to(Path.cwd())}...",
+                )
                 shutil.rmtree(self.build_path)
 
         if not self.source_archive_path.is_file():
-            print(f"\n[{self.cross_venv}] Download package sources")
+            log(self.log_file, f"\n[{self.cross_venv}] Download package sources")
             self.download_source()
 
         if not self.build_path.is_dir():
-            print(f"\n[{self.cross_venv}] Unpack sources")
+            log(self.log_file, f"\n[{self.cross_venv}] Unpack sources")
             self.unpack_source()
 
-            print(f"\n[{self.cross_venv}] Apply patches")
+            log(self.log_file, f"\n[{self.cross_venv}] Apply patches")
             self.patch_source()
 
         # Create a clean cross environment.
-        print(f"\n[{self.cross_venv}] Create clean build environment")
+        log(self.log_file, f"\n[{self.cross_venv}] Create clean build environment")
         self.cross_venv.create(location=self.build_path, clean=True)
 
-        print(f"\n[{self.cross_venv}] Install forge host requirements")
+        log(self.log_file, f"\n[{self.cross_venv}] Install forge host requirements")
         self.install_requirements("host")
 
-        print(f"\n[{self.cross_venv}] Install forge build requirements")
+        log(self.log_file, f"\n[{self.cross_venv}] Install forge build requirements")
         self.install_requirements("build")
 
     def compile_env(self, **kwargs) -> dict[str:str]:
@@ -235,23 +252,38 @@ class Builder(ABC):
         return env
 
     def build(self, clean):
-        try:
-            self.prepare(clean=clean)
-            self._build()
-            return True
-        except Exception as e:
-            print("*" * 80)
-            print(
-                f"Failed build: {self.package} for {self.cross_venv.sdk} "
-                f"{self.cross_venv.sdk_version} on {self.cross_venv.arch}"
-            )
-            print("*" * 80)
-            with (
-                self.log_file_path.parent / (self.log_file_path.name + ".error")
-            ).open("w", encoding="utf-8") as f:
-                f.write(str(e))
-            print()
-            return False
+        # If there's an error log file, remove it.
+        # The log file will be overwritten by being re-opened.
+        if self.error_log_file_path.exists():
+            self.error_log_file_path.unlink()
+
+        self.log_file_path.parent.mkdir(parents=True, exist_ok=True)
+        with self.log_file_path.open("w", encoding="utf-8") as self.log_file:
+            log(self.log_file, "=" * 80)
+            log(self.log_file, f"Building {self.package} for {self.cross_venv.tag}")
+            log(self.log_file, "=" * 80)
+            try:
+                self.prepare(clean=clean)
+                self._build()
+                success = True
+            except Exception:
+                log(self.log_file, "*" * 80)
+                log(
+                    self.log_file,
+                    f"Failed build: {self.package} for {self.cross_venv.sdk} "
+                    f"{self.cross_venv.sdk_version} on {self.cross_venv.arch}",
+                )
+                log(self.log_file, "*" * 80)
+                log_exception(self.log_file)
+
+                success = False
+
+        # If the build failed, move the log file to the error location.
+        if not success:
+            self.error_log_file_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(self.log_file_path, self.error_log_file_path)
+
+        return success
 
     @abstractmethod
     def _build(self):
@@ -287,8 +319,7 @@ class SimplePackageBuilder(Builder):
     def log_file_path(self) -> Path:
         return (
             Path.cwd()
-            / "build"
-            / "any"
+            / "logs"
             / f"{self.package.name}-{self.package.version}-{self.cross_venv.tag}.log"
         )
 
@@ -299,17 +330,17 @@ class SimplePackageBuilder(Builder):
         # Always clean a non-Python build.
         super().prepare(clean=True)
 
-        print(f"\n[{self.cross_venv}] Installing wheel-building tools")
-        self.cross_venv.pip_install(["wheel"], build=True)
+        log(self.log_file, f"\n[{self.cross_venv}] Installing wheel-building tools")
+        self.cross_venv.pip_install(self.log_file, ["wheel"], build=True)
 
     def write_message_file(self, filename, data):
-        msg = email.message.Message()
+        msg = message.Message()
         for key, value in data.items():
             msg[key] = value
 
         # I don't know whether maxheaderlen is required, but it's used by bdist_wheel.
         with filename.open("w", encoding="utf-8") as f:
-            email.generator.Generator(f, maxheaderlen=0).flatten(msg)
+            generator.Generator(f, maxheaderlen=0).flatten(msg)
 
     def make_wheel(self):
         build_num = str(self.package.meta["build"]["number"])
@@ -317,7 +348,7 @@ class SimplePackageBuilder(Builder):
         version = canonicalize_version(self.package.version)
         info_path = self.build_path / "wheel" / f"{name}-{version}.dist-info"
 
-        print(f"\n[{self.cross_venv}] Writing wheel metadata")
+        log(self.log_file, f"\n[{self.cross_venv}] Writing wheel metadata")
         info_path.mkdir()
 
         # Write the packaging metadata
@@ -343,8 +374,9 @@ class SimplePackageBuilder(Builder):
         )
 
         # Re-pack the wheel file
-        print(f"\n[{self.cross_venv}] Packing wheel")
+        log(self.log_file, f"\n[{self.cross_venv}] Packing wheel")
         self.cross_venv.run(
+            self.log_file,
             [
                 "build-python",
                 "-m",
@@ -356,11 +388,11 @@ class SimplePackageBuilder(Builder):
                 "--build-number",
                 str(build_num),
             ],
-            check=True,
         )
 
     def compile(self):
         self.cross_venv.run(
+            self.log_file,
             [
                 str(self.package.recipe_path / "build.sh"),
             ],
@@ -373,7 +405,6 @@ class SimplePackageBuilder(Builder):
                     "PREFIX": str(self.build_path / "wheel" / "opt"),
                 }
             ),
-            check=True,
         )
 
     def _build(self):
@@ -416,9 +447,8 @@ class PythonPackageBuilder(Builder):
     def log_file_path(self) -> Path:
         return (
             Path.cwd()
-            / "build"
-            / f"cp3{sys.version_info.minor}"
-            / f"{self.package.name}-{self.package.version}-{self.cross_venv.tag}.log"
+            / "logs"
+            / f"{self.package.name}-{self.package.version}-cp3{sys.version_info.minor}-{self.cross_venv.tag}.log"
         )
 
     def download_source_url(self):
@@ -429,7 +459,10 @@ class PythonPackageBuilder(Builder):
 
         # Install any build requirements (PEP517 or otherwise)
         if (self.build_path / "pyproject.toml").is_file():
-            print(f"\n[{self.cross_venv}] Install pyproject.toml build requirements")
+            log(
+                self.log_file,
+                f"\n[{self.cross_venv}] Install pyproject.toml build requirements",
+            )
 
             # Install the requirements from pyproject.toml
             with (self.build_path / "pyproject.toml").open("rb") as f:
@@ -437,25 +470,32 @@ class PythonPackageBuilder(Builder):
 
                 # Install the build requirements in the cross environment
                 self.cross_venv.pip_install(
+                    self.log_file,
                     ["build"] + pyproject["build-system"]["requires"],
                     wheels_path=Path.cwd() / "dist",
                 )
 
                 # Install the build requirements in the build environment
                 self.cross_venv.pip_install(
+                    self.log_file,
                     ["build"] + pyproject["build-system"]["requires"],
                     wheels_path=Path.cwd() / "dist",
                     build=True,
                 )
         else:
-            print(f"\n[{self.cross_venv}] Installing non-PEP517 build requirements")
+            log(
+                self.log_file,
+                f"\n[{self.cross_venv}] Installing non-PEP517 build requirements",
+            )
             # Ensure the cross environment has the most recent tools
-            self.cross_venv.pip_install(["setuptools"], update=True)
-            self.cross_venv.pip_install(["build", "wheel"])
+            self.cross_venv.pip_install(self.log_file, ["setuptools"], update=True)
+            self.cross_venv.pip_install(self.log_file, ["build", "wheel"])
 
             # Ensure the build environment has the most recent tools
-            self.cross_venv.pip_install(["setuptools"], update=True, build=True)
-            self.cross_venv.pip_install(["build", "wheel"], build=True)
+            self.cross_venv.pip_install(
+                self.log_file, ["setuptools"], update=True, build=True
+            )
+            self.cross_venv.pip_install(self.log_file, ["build", "wheel"], build=True)
 
     def _build(self):
         # Set up any additional environment variables needed in the script environment.
@@ -468,6 +508,7 @@ class PythonPackageBuilder(Builder):
         script_env["_PYTHON_HOST_PLATFORM"] = self.cross_venv.platform_identifier
 
         self.cross_venv.run(
+            self.log_file,
             [
                 "python",
                 "-m",
@@ -479,5 +520,4 @@ class PythonPackageBuilder(Builder):
             ],
             cwd=self.build_path,
             env=self.compile_env(**script_env),
-            check=True,
         )

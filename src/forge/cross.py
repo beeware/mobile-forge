@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import argparse
 import os
-import shlex
 import shutil
-import subprocess
 import sys
 import sysconfig
 from os.path import abspath
 from pathlib import Path
+
+from forge import subprocess
 
 
 class CrossVEnv:
@@ -205,6 +205,7 @@ class CrossVEnv:
         print(f"Creating {self}...")
         try:
             subprocess.run(
+                None,  # Creating the cross venv isn't logged.
                 [
                     sys.executable,
                     "-m",
@@ -212,8 +213,6 @@ class CrossVEnv:
                     str(host_python),
                     self.venv_path,
                 ],
-                encoding="UTF-8",
-                check=True,
             )
         except subprocess.CalledProcessError:
             raise RuntimeError(f"Unable to create cross platform environment {self}.")
@@ -331,7 +330,7 @@ class CrossVEnv:
     def check_output(self, args, **kwargs):
         return subprocess.check_output(args, **self.cross_kwargs(kwargs))
 
-    def run(self, args, **kwargs):
+    def run(self, logfile, *args, **kwargs):
         """Run a command in the cross environment.
 
         This passes the provided arguments directly to invocation of ``subprocess.run``;
@@ -350,18 +349,20 @@ class CrossVEnv:
         For auditing purposes, the final kwargs used at runtime will be output to the
         console.
 
+        :param logfile: An open file handle to which all output will be logged.
         :param args: The list of command line arguments
         :param kwargs: Any extra arguments to pass to the ``subprocess.run`` invocation.
         """
-        print()
-        final_kwargs = self.cross_kwargs(kwargs)
-        print(f">>> {shlex.join(args)}")
-        for key, value in final_kwargs.get("env", {}).items():
-            print(f"    {key} = {shlex.quote(value)}")
-        print()
-        return subprocess.run(args, **final_kwargs)
+        return subprocess.run(logfile, *args, **self.cross_kwargs(kwargs))
 
-    def pip_install(self, packages, update=False, build=False, wheels_path=None):
+    def pip_install(
+        self,
+        logfile,
+        packages,
+        update=False,
+        build=False,
+        wheels_path=None,
+    ):
         """Install packages into the cross environment.
 
         :param packages: The list of package names/specifiers to install.
@@ -373,6 +374,7 @@ class CrossVEnv:
         # build-pip is a script; pip is a shim with a hashbang that points
         # at a python interpreter, which we can't invoke with subprocess.
         self.run(
+            logfile,
             (["build-pip"] if build else ["python", "-m", "pip"])
             + [
                 "install",
@@ -394,7 +396,6 @@ class CrossVEnv:
             + (["--find-links", str(wheels_path)] if wheels_path else [])
             # Finally, the list of packages to install.
             + packages,
-            check=True,
         )
 
 
