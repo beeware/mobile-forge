@@ -74,7 +74,8 @@ If you're *not* using Python-Apple-support, the setup process requires more manu
     (venv3.11) $ forge iphonesimulator:12.0:arm64 lru-dict
 
 Once this command completes, there should be a wheel for each platform in the ``dist``
-folder.
+folder. A log for each successful build will be in the ``logs`` folder; a log for each
+unsuccessful build (if there are any) will be in the ``errors`` folder.
 
 The special snowflakes
 ~~~~~~~~~~~~~~~~~~~~~~
