@@ -1,3 +1,42 @@
+diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/envconfig.py numpy-1.26.0/vendored-meson/meson/mesonbuild/envconfig.py
+--- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/envconfig.py	1970-01-01 08:00:00
++++ numpy-1.26.0/vendored-meson/meson/mesonbuild/envconfig.py	2023-10-17 15:16:38
+@@ -317,9 +317,33 @@
+
+     def is_darwin(self) -> bool:
+         """
+-        Machine is Darwin (iOS/tvOS/OS X)?
++        Machine is a Darwin kernel (iOS/tvOS/macOS)?
+         """
+-        return self.system in {'darwin', 'ios', 'tvos'}
++        return self.system in {'darwin', 'ios', 'tvos', 'watchos'}
++
++    def is_macOS(self) -> bool:
++        """
++        Machine is macOS?
++        """
++        return self.system == 'darwin'
++
++    def is_iOS(self) -> bool:
++        """
++        Machine is iOS?
++        """
++        return self.system == 'ios'
++
++    def is_tvOS(self) -> bool:
++        """
++        Machine is tvOS?
++        """
++        return self.system == 'tvos'
++
++    def is_watchOS(self) -> bool:
++        """
++        Machine is watchOS?
++        """
++        return self.system == 'watchos'
+
+     def is_android(self) -> bool:
+         """
 diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/environment.py numpy-1.26.0/vendored-meson/meson/mesonbuild/environment.py
 --- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/environment.py	1970-01-01 08:00:00
 +++ numpy-1.26.0/vendored-meson/meson/mesonbuild/environment.py	2023-10-02 14:33:03
@@ -19,6 +58,44 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/environment.py numpy-
          trial = platform.processor().lower()
      else:
          trial = platform.machine().lower()
+diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/linkers/detect.py numpy-1.26.0/vendored-meson/meson/mesonbuild/linkers/detect.py
+--- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/linkers/detect.py	1970-01-01 08:00:00
++++ numpy-1.26.0/vendored-meson/meson/mesonbuild/linkers/detect.py	2023-10-17 15:18:33
+@@ -199,7 +199,17 @@
+                 break
+         else:
+             __failed_to_detect_linker(compiler, check_args, o, e)
+-        linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
++
++        # iOS/tvOS/watchOS have different linking needs.
++        if (
++            env.machines[for_machine].is_iOS()
++            or env.machines[for_machine].is_tvOS()
++            or env.machines[for_machine].is_watchOS()
++        ):
++            linker = linkers.AppleMobileDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
++        else:
++            linker = linkers.AppleDynamicLinker(compiler, for_machine, comp_class.LINKER_PREFIX, override, version=v)
++
+     elif 'GNU' in o or 'GNU' in e:
+         gnu_cls: T.Type[GnuDynamicLinker]
+         # this is always the only thing on stdout, except for swift
+diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/linkers/linkers.py numpy-1.26.0/vendored-meson/meson/mesonbuild/linkers/linkers.py
+--- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/linkers/linkers.py	1970-01-01 08:00:00
++++ numpy-1.26.0/vendored-meson/meson/mesonbuild/linkers/linkers.py	2023-10-17 14:59:26
+@@ -829,6 +829,12 @@
+         return ["-Wl,-cache_path_lto," + path]
+
+
++class AppleMobileDynamicLinker(AppleDynamicLinker):
++    # iOS/tvOS/watchOS need to be linked with -dynamiclib, not -bundle
++    def get_std_shared_module_args(self, options: "KeyedOptionDictType") -> T.List[str]:
++        return ["-dynamiclib"] + self._apply_prefix("-undefined,dynamic_lookup")
++
++
+ class LLVMLD64DynamicLinker(AppleDynamicLinker):
+
+     id = 'ld64.lld'
 diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/utils/universal.py numpy-1.26.0/vendored-meson/meson/mesonbuild/utils/universal.py
 --- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/utils/universal.py	1970-01-01 08:00:00
 +++ numpy-1.26.0/vendored-meson/meson/mesonbuild/utils/universal.py	2023-10-02 13:52:21
@@ -53,7 +130,7 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/utils/universal.py nu
  def is_linux() -> bool:
 diff -ru numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py numpy-1.26.0/vendored-meson/meson-python/mesonpy/__init__.py
 --- numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py	1970-01-01 08:00:00
-+++ numpy-1.26.0/vendored-meson/meson-python/mesonpy/__init__.py	2023-10-03 14:23:24
++++ numpy-1.26.0/vendored-meson/meson-python/mesonpy/__init__.py	2023-10-03 14:33:05
 @@ -133,7 +133,7 @@
 
  _SUFFIXES = importlib.machinery.all_suffixes()
@@ -73,7 +150,7 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py numpy
              archflags = os.environ.get('ARCHFLAGS', '').strip()
              if archflags:
                  arch, *other = filter(None, (x.strip() for x in archflags.split('-arch')))
-@@ -689,6 +690,35 @@
+@@ -689,6 +690,34 @@
                      ''')
                      self._meson_cross_file.write_text(cross_file_data)
                      self._meson_args['setup'].extend(('--cross-file', os.fspath(self._meson_cross_file)))
@@ -85,7 +162,6 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py numpy
 +                [binaries]
 +                c = [{sysconfig.get_config_var("CC")!r}]
 +                cpp = [{sysconfig.get_config_var("CC")!r}]
-+                cmake = ['cmake']
 +
 +                [host_machine]
 +                system = 'ios'
