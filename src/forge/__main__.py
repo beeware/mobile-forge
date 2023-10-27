@@ -135,6 +135,7 @@ def main():
             10: "numpy:1.21.6",
             11: "numpy:1.23.2",
             12: "numpy:1.26.0",
+            13: "numpy:1.26.0",
         }[sys.version_info.minor]
 
         if args.subset in {"all", "py", "smoke", "smoke-py"}:
@@ -144,13 +145,13 @@ def main():
                     "pillow",
                     "numpy",
                 ]
-                # On Python 3.12, the oldest supported numpy *is* the only version of
+                # On Python 3.12 and 3.13, the oldest supported numpy *is* the only version of
                 # numpy that is supported.
                 + (
                     [
                         oldest_supported_numpy,
                     ]
-                    if sys.version_info.minor != 12
+                    if sys.version_info.minor in {12, 13}
                     else []
                 )
                 + [
