@@ -69,14 +69,13 @@ if [ ! -d ./venv$PYTHON_VER ]; then
     echo "Creating Python $PYTHON_VER virtual environment for build..."
     $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VERSION/bin/python$PYTHON_VER -m venv venv$PYTHON_VER
 
-    echo "Copying platform wheels..."
-    mkdir -p dist
-    cp $PYTHON_APPLE_SUPPORT/wheels/iOS/* dist
-
     source ./venv$PYTHON_VER/bin/activate
 
     pip install -U pip
-    pip install -e .
+    pip install -e . wheel
+
+    echo "Building platform dependency wheels..."
+    python -m make_dep_wheels iOS
 
     echo "Python $PYTHON_VERSION environment has been created."
     echo
@@ -94,7 +93,7 @@ if ! [ -f "dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl" ]; then
     cp dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl dist/ninja-1.11.1-py3-none-ios_12_0_iphonesimulator_arm64.whl
 fi
 
-export PATH="$PATH:$PYTHON_APPLE_SUPPORT/install/iOS/bin:$(pwd)/tools/CMake.app/Contents/bin"
+export PATH="$PATH:$PYTHON_APPLE_SUPPORT/support/$PYTHON_VER/iOS/bin:$(pwd)/tools/CMake.app/Contents/bin"
 
 export MOBILE_FORGE_IPHONEOS_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphoneos.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
 export MOBILE_FORGE_IPHONESIMULATOR_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
