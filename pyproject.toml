@@ -32,7 +32,7 @@ dependencies = [
     # Currently using a fork of crossenv to get iOS fixes.
     # Replace when/if these are merged and released.
     "crossenv @ git+https://github.com/freakboy3742/crossenv@iOS-support",
-    "httpx == 0.25.0",
+    "httpx == 0.25.1",
     "Jinja2 == 3.1.2",
     "jsonschema == 4.19.1",
     "packaging == 23.2",
