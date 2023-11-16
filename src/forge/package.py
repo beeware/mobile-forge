@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from copy import deepcopy
 from pathlib import Path
 
@@ -71,7 +72,8 @@ class Package:
         meta_str = jinja2.Template(meta_template).render(
             version=tuple(int(v) for v in override_version.split("."))
             if override_version
-            else None
+            else None,
+            py_version=sys.version_info,
         )
 
         # Parse the rendered meta template

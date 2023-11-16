@@ -1,9 +1,16 @@
+# This recipe doesn't work on Python 3.9 (due to setuptools_scm issues),
+# or on Python 3.8 (due to numpy availability issues)
 package:
   name: matplotlib
   version: 3.6.0
 
 patches:
   - setupext.patch
+{% if py_version < (3, 11) %}
+  # This is required because of the inconsistency in old Apple Support versions
+  # in the error raised when subprocess is used.
+  - subprocess.patch
+{% endif %}
 
 requirements:
   host:
@@ -14,6 +21,3 @@ requirements:
   build:
     - certifi
     - setuptools_scm
-
-# about:
-#   license_file: LICENSE/LICENSE
