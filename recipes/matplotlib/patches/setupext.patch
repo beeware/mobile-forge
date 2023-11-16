@@ -1,0 +1,47 @@
+diff -ru matplotlib-3.6.0-orig/setupext.py matplotlib-3.6.0/setupext.py
+--- matplotlib-3.6.0-orig/setupext.py	2022-09-16 07:26:26.000000000 +0800
++++ matplotlib-3.6.0/setupext.py	2022-09-28 13:41:58.000000000 +0800
+@@ -199,7 +199,7 @@
+     'backend': config.get('rc_options', 'backend', fallback=None),
+     'system_freetype': config.getboolean(
+         'libs', 'system_freetype',
+-        fallback=sys.platform.startswith(('aix', 'os400'))
++        fallback=sys.platform.startswith(('aix', 'os400', 'ios', 'tvos', 'watchos'))
+     ),
+     'system_qhull': config.getboolean(
+         'libs', 'system_qhull', fallback=sys.platform.startswith('os400')
+@@ -493,8 +493,8 @@
+
+
+ def add_numpy_flags(ext):
+-    import numpy as np
+-    ext.include_dirs.append(np.get_include())
++    import site
++    ext.include_dirs.append(os.path.abspath(os.path.join(site.getsitepackages()[0], "numpy/core/include")))
+     ext.define_macros.extend([
+         # Ensure that PY_ARRAY_UNIQUE_SYMBOL is uniquely defined for each
+         # extension.
+@@ -563,14 +563,15 @@
+         # appropriate error message if the header indicates a too-old version.
+         ext.sources.insert(0, 'src/checkdep_freetype2.c')
+         if options.get('system_freetype'):
+-            pkg_config_setup_extension(
+-                # FreeType 2.3 has libtool version 9.11.3 as can be checked
+-                # from the tarball.  For FreeType>=2.4, there is a conversion
+-                # table in docs/VERSIONS.txt in the FreeType source tree.
+-                ext, 'freetype2',
+-                atleast_version='9.11.3',
+-                alt_exec=['freetype-config'],
+-                default_libraries=['freetype'])
++            # pkg_config_setup_extension(
++            #     # FreeType 2.3 has libtool version 9.11.3 as can be checked
++            #     # from the tarball.  For FreeType>=2.4, there is a conversion
++            #     # table in docs/VERSIONS.txt in the FreeType source tree.
++            #     ext, 'freetype2',
++            #     atleast_version='9.11.3',
++            #     alt_exec=['freetype-config'],
++            #     default_libraries=['freetype'])
++            ext.libraries.append("freetype")
+             ext.define_macros.append(('FREETYPE_BUILD_TYPE', 'system'))
+         else:
+             src_path = Path('build', f'freetype-{LOCAL_FREETYPE_VERSION}')
