@@ -99,6 +99,22 @@ export MOBILE_FORGE_IPHONEOS_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphoneos.ar
 export MOBILE_FORGE_IPHONESIMULATOR_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
 export MOBILE_FORGE_IPHONESIMULATOR_X86_64=$PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.x86_64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
 
+# Setup docker for fortran/flang
+
+if ! docker info &>/dev/null; then
+  echo "Docker daemon not running!"
+  exit 1
+fi
+
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
+# shellcheck disable=SC2048,SC2086
+DOCKER_BUILDKIT=1 docker build -t flang --compress . $*
+docker stop flang &>/dev/null || true
+docker rm flang &>/dev/null || true
+docker run -d --name flang -v "$(pwd)/share:/root/host" -v /Users:/Users -v /var/folders:/var/folders -it flang
+
+# Print help
+
 echo
 echo "You can now build packages with forge; e.g.:"
 echo
