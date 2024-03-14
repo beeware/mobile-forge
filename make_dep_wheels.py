@@ -101,6 +101,9 @@ def make_wheel(package, os_name, target):
                 )
             )
 
+        # Ensure the dist folder exists
+        Path("dist").mkdir(exist_ok=True)
+
         # Pack the wheel
         subprocess.run(
             [
