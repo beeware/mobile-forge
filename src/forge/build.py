@@ -237,18 +237,19 @@ class Builder(ABC):
         env.update(kwargs)
 
         # Add in some user environment keys that are useful
-        env.update(
-            {
-                key: os.environ.get(key)
-                for key in [
-                    "TMPDIR",
-                    "USER",
-                    "HOME",
-                    "LANG",
-                    "TERM",
-                ]
-            }
-        )
+        for key in [
+            "TMPDIR",
+            "USER",
+            "HOME",
+            "LANG",
+            "TERM",
+        ]:
+            try:
+                env[key] = os.environ[key]
+            except KeyError:
+                # User's environment doesn't provide the key.
+                pass
+
         return env
 
     def build(self, clean):

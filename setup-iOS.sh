@@ -1,4 +1,3 @@
-#!/bin/bash
 # set -e
 
 if [ -z "$1" ]; then
@@ -76,6 +75,9 @@ if [ ! -d ./venv$PYTHON_VER ]; then
 
     echo "Building platform dependency wheels..."
     python -m make_dep_wheels iOS
+    if [ $? -ne 0 ]; then
+        return
+    fi
 
     echo "Python $PYTHON_VERSION environment has been created."
     echo
