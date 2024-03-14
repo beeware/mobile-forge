@@ -6,6 +6,7 @@ that can be referenced during forge builds.
 You should not need to invoke this script directly; it should be called by `./setup-
 iOS.sh` when creating a new forge environment.
 """
+
 import os
 import re
 import shutil
@@ -44,6 +45,13 @@ def make_wheel(package, os_name, target):
 
     wheel_tag = f"py3-none-{os_name}_{min_version}_{target}".lower().replace(".", "_")
 
+    wheel_file = (
+        Path("dist") / f"{package.lower()}-{package_version_build}-{wheel_tag}.whl"
+    )
+    if wheel_file.exists():
+        print(f"{wheel_file} already exists")
+        return
+
     install_path = (
         support
         / "install"
@@ -51,12 +59,11 @@ def make_wheel(package, os_name, target):
         / target
         / f"{package.lower()}-{package_version_build}"
     )
-
-    if (
-        Path("dist") / f"{package.lower()}-{package_version_build}-{wheel_tag}.whl"
-    ).exists():
-        # Wheel already exists.
-        return
+    if not install_path.exists():
+        print(
+            f"Cannot build {target} wheel for {package}; can't find installed version in {install_path}"
+        )
+        sys.exit(1)
 
     with tempfile.TemporaryDirectory(dir=".") as tmp:
         wheel_path = Path(tmp)
