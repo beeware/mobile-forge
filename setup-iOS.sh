@@ -1,13 +1,31 @@
 # set -e
 
+usage() {
+    echo "Usage:"
+    echo
+    echo "    source $1 <python version>"
+    echo
+    echo "for example:"
+    echo
+    echo "    source $1 3.12"
+    echo
+}
+
+# make sure the script is sourced
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+    echo "This script must be sourced."
+    echo
+    usage $0
+    exit 1
+fi
+
 if [ -z "$1" ]; then
-    echo "usage: $0 <python version>"
-    echo "e.g.:"
+    echo "Python version is not provided."
     echo
-    echo "    source $0 3.11"
-    echo
+    usage $0
     return
 fi
+
 PYTHON_VER=$1
 CMAKE_VERSION="3.27.4"
 
