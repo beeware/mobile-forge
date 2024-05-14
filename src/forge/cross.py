@@ -64,6 +64,7 @@ class CrossVEnv:
 
         # Prime the on-demand variable cache
         self._sysconfig_data = None
+        self._scheme_paths = None
         self._install_root = None
         self._sdk_root = None
 
@@ -102,6 +103,28 @@ class CrossVEnv:
             self._sysconfig_data = config["data"]
 
         return self._sysconfig_data
+
+    @property
+    def scheme_paths(self) -> dict[str, str]:
+        """The install scheme paths for the cross environment."""
+        if self._scheme_paths is None:
+            # Run a script in the cross-venv that outputs the config variables
+            config_var_repr = self.check_output(
+                [
+                    "python",
+                    "-c",
+                    "import sysconfig; print(sysconfig.get_paths())",
+                ],
+                encoding="UTF-8",
+            )
+
+            # Parse the output of the previous command as Python,
+            # turning it back into a dict.
+            config = {}
+            exec(f"data = {config_var_repr}", config, config)
+            self._scheme_paths = config["data"]
+
+        return self._scheme_paths
 
     @property
     def install_root(self) -> Path:
@@ -295,8 +318,8 @@ class CrossVEnv:
             p
             for p in os.getenv("PATH").split(os.pathsep)[1:]
             if not (
-                # Exclude rbenv, npm, and other language environments
-                p.startswith(f"{Path.home()}/.")
+                # Exclude rbenv, npm, and other language environments, except for rust/cargo.
+                (p.startswith(f"{Path.home()}/.") and not p.endswith("/.cargo/bin"))
                 # Exclude homebrew
                 or p.startswith("/opt")
                 # Exclude local python installs

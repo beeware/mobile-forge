@@ -1,6 +1,8 @@
 package:
   name: cryptography
-  version: 3.4.8
+  version: 41.0.4
+
+{% if version and version < (3, 4, 9) %}
 
 patches:
   - random.patch
@@ -13,7 +15,23 @@ requirements:
   build:
     - cffi 1.15.1
     - setuptools-rust 0.11.6
-    # "setuptools_rust @ git+https://github.com/freakboy3742/setuptools_rust@iOS-support",
   host:
     - openssl 1.1.1v
-    # - openssl 3.1.2
+
+{% else %}
+
+patches:
+  - mobile.patch
+
+build:
+  script_env:
+    - OPENSSL_STATIC=1
+    - OPENSSL_DIR={platlib}/opt
+
+requirements:
+  build:
+    - setuptools_rust @ git+https://github.com/freakboy3742/setuptools-rust@iOS-support
+  host:
+    - openssl 3.1.2
+
+{% endif %}

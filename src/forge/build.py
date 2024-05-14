@@ -228,11 +228,20 @@ class Builder(ABC):
         if (sdk_root / "usr" / "lib").is_dir():
             ldflags += f" -L{sdk_root}/usr/lib"
 
+        cargo_build_target = {
+            "arm64-apple-ios": "aarch64-apple-ios",
+            "arm64-apple-ios-simulator": "aarch64-apple-ios-simulator",
+            # This one is odd; Rust doesn't provide an `x86_64-apple-ios-simulator`,
+            # but there's no such thing as an x86_64 ios *device*.
+            "x86_64-apple-ios-simulator": "x86_64-apple-ios",
+        }[self.cross_venv.platform_triplet]
+
         env = {
             "AR": ar,
             "CC": cc,
             "CFLAGS": cflags,
             "LDFLAGS": ldflags,
+            "CARGO_BUILD_TARGET": cargo_build_target,
         }
         env.update(kwargs)
 
@@ -503,7 +512,7 @@ class PythonPackageBuilder(Builder):
         script_env = {}
         for line in self.package.meta["build"]["script_env"]:
             key, value = line.split("=", 1)
-            script_env[key] = value
+            script_env[key] = value.format(**self.cross_venv.scheme_paths)
 
         # Set the cross host platform in the environment
         script_env["_PYTHON_HOST_PLATFORM"] = self.cross_venv.platform_identifier
