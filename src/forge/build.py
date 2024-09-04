@@ -71,6 +71,7 @@ class Builder(ABC):
                 self.log_file,
                 requirements,
                 wheels_path=Path.cwd() / "dist",
+                deps_path=Path.cwd() / "deps",
                 build=target == "build",
             )
         else:
@@ -98,6 +99,13 @@ class Builder(ABC):
             self.log_file,
             f"Unpacking {self.source_archive_path.relative_to(Path.cwd())}...",
         )
+        # Determine the stripping level. By default, this is 1;
+        # but some source types can override.
+        try:
+            strip = self.package.meta["source"]["strip"]
+        except (TypeError, KeyError):
+            strip = 1
+
         # Some packages (e.g., brotli) have uploaded a .tar.gz file... that is
         # actually a zipfile (!).
         if tarfile.is_tarfile(self.source_archive_path):
@@ -115,8 +123,9 @@ class Builder(ABC):
             with tarfile.open(self.source_archive_path) as tf:
                 tf.extractall(
                     path=self.build_path,
-                    members=members(tf, strip=1),
+                    members=members(tf, strip=strip) if strip else None,
                 )
+
         elif zipfile.is_zipfile(self.source_archive_path):
             # Strip the top level folder.
             zf = zipfile.ZipFile(self.source_archive_path)
@@ -133,7 +142,7 @@ class Builder(ABC):
 
             zf.extractall(
                 path=self.build_path,
-                members=members(zf, strip=1),
+                members=members(zf, strip=strip) if strip else None,
             )
         else:
             raise RuntimeError(
@@ -201,6 +210,7 @@ class Builder(ABC):
         cc = sysconfig_data["CC"]
 
         cflags = self.cross_venv.sysconfig_data["CFLAGS"]
+
         # Pre Python 3.11 versions included BZip2 and XZ includes in CFLAGS. Remove them.
         cflags = re.sub(r"-I.*/merge/iOS/.*/bzip2-.*/include", "", cflags)
         cflags = re.sub(r"-I.*/merge/iOS/.*/xs-.*/include", "", cflags)
@@ -214,25 +224,34 @@ class Builder(ABC):
         if (sdk_root / "usr" / "include").is_dir():
             cflags += f" -I{sdk_root}/usr/include"
 
+        # Add any user-specified CFLAGS
+        if "CFLAGS" in kwargs:
+            cflags += " " + kwargs.pop("CFLAGS")
+
         ldflags = self.cross_venv.sysconfig_data["LDFLAGS"]
-        # Pre Python 3.11 versions included BZip2 and XZ includes in CFLAGS. Remove them.
-        cflags = re.sub(r"-I.*/merge/iOS/.*/bzip2-.*/include", "", cflags)
-        cflags = re.sub(r"-I.*/merge/iOS/.*/xs-.*/include", "", cflags)
 
         # Replace any hard-coded reference to -isysroot <sysroot> with the actual reference
-        cflags = re.sub(r"-isysroot \w+", f"-isysroot={sdk_root}", cflags)
+        ldflags = re.sub(r"-isysroot \w+", f"-isysroot={sdk_root}", ldflags)
 
-        # Add the install root and SDK root includes
+        # Add the framework path
+        ldflags += f' -F "{self.cross_venv.host_python_home}"'
+
+        # Add the install root and SDK root library paths
         if (install_root / "lib").is_dir():
             ldflags += f" -L{install_root}/lib"
         if (sdk_root / "usr" / "lib").is_dir():
             ldflags += f" -L{sdk_root}/usr/lib"
+
+        # Add any user-specified LDFLAGS
+        if "LDFLAGS" in kwargs:
+            ldflags += " " + kwargs.pop("LDFLAGS")
 
         env = {
             "AR": ar,
             "CC": cc,
             "CFLAGS": cflags,
             "LDFLAGS": ldflags,
+            "INSTALL_ROOT": str(self.cross_venv.install_root),
         }
         env.update(kwargs)
 
@@ -297,7 +316,7 @@ class SimplePackageBuilder(Builder):
 
     @property
     def source_archive_path(self) -> Path:
-        url = self.package.meta["source"]["url"]
+        url = self.download_source_url()
         filename = url.split("/")[-1]
         return Path.cwd() / "downloads" / filename
 
@@ -325,7 +344,12 @@ class SimplePackageBuilder(Builder):
         )
 
     def download_source_url(self):
-        return self.package.meta["source"]["url"]
+        return self.package.meta["source"]["url"].format(
+            version=self.package.meta["package"]["version"],
+            build=self.package.meta["build"]["number"],
+            sdk=self.cross_venv.sdk,
+            arch=self.cross_venv.arch,
+        )
 
     def prepare(self, clean=True):
         # Always clean a non-Python build.
@@ -385,27 +409,30 @@ class SimplePackageBuilder(Builder):
                 "pack",
                 str(self.build_path / "wheel"),
                 "--dest-dir",
-                str(Path.cwd() / "dist"),
+                str(Path.cwd() / "deps"),
                 "--build-number",
                 str(build_num),
             ],
         )
 
     def compile(self):
+        script_env = {
+            "HOST_TRIPLET": self.cross_venv.platform_triplet,
+            "BUILD_TRIPLET": f"{os.uname().machine}-apple-darwin",
+            "CPU_COUNT": str(multiprocessing.cpu_count()),
+            "PREFIX": str(self.build_path / "wheel" / "opt"),
+        }
+        for line in self.package.meta["build"]["script_env"]:
+            key, value = line.split("=", 1)
+            script_env[key] = value
+
         self.cross_venv.run(
             self.log_file,
             [
                 str(self.package.recipe_path / "build.sh"),
             ],
             cwd=self.build_path,
-            env=self.compile_env(
-                **{
-                    "HOST_TRIPLET": self.cross_venv.platform_triplet,
-                    "BUILD_TRIPLET": f"{os.uname().machine}-apple-darwin",
-                    "CPU_COUNT": str(multiprocessing.cpu_count()),
-                    "PREFIX": str(self.build_path / "wheel" / "opt"),
-                }
-            ),
+            env=self.compile_env(**script_env),
         )
 
     def _build(self):
@@ -474,6 +501,7 @@ class PythonPackageBuilder(Builder):
                     self.log_file,
                     ["build", "wheel"] + pyproject["build-system"]["requires"],
                     wheels_path=Path.cwd() / "dist",
+                    deps_path=Path.cwd() / "deps",
                 )
 
                 # Install the build requirements in the build environment
@@ -481,6 +509,7 @@ class PythonPackageBuilder(Builder):
                     self.log_file,
                     ["build", "wheel"] + pyproject["build-system"]["requires"],
                     wheels_path=Path.cwd() / "dist",
+                    deps_path=Path.cwd() / "deps",
                     build=True,
                 )
         else:
@@ -508,6 +537,13 @@ class PythonPackageBuilder(Builder):
         # Set the cross host platform in the environment
         script_env["_PYTHON_HOST_PLATFORM"] = self.cross_venv.platform_identifier
 
+        # If the package is internal tooling, not for publication, output into
+        # the deps folder.
+        if self.package.name in {"oldest-supported-numpy"}:
+            output_dir = str(Path.cwd() / "deps")
+        else:
+            output_dir = str(Path.cwd() / "dist")
+
         self.cross_venv.run(
             self.log_file,
             [
@@ -517,7 +553,7 @@ class PythonPackageBuilder(Builder):
                 "--no-isolation",
                 "--wheel",
                 "--outdir",
-                str(Path.cwd() / "dist"),
+                output_dir,
             ],
             cwd=self.build_path,
             env=self.compile_env(**script_env),

@@ -1,7 +1,17 @@
 #!/bin/bash
 set -eu
 
-./configure --host=$HOST_TRIPLET --build=$BUILD_TRIPLET --without-harfbuzz --without-png
+./configure \
+    --host=$HOST_TRIPLET \
+    --build=$BUILD_TRIPLET \
+    --enable-static \
+    --without-harfbuzz \
+    --without-png \
+    BZIP2_CFLAGS="-I$INSTALL_ROOT/include" \
+    BZIP2_LIBS="-L$INSTALL_ROOT/lib -lbz2" \
+    ZLIB_CFLAGS="-I$INSTALL_ROOT/include" \
+    ZLIB_LIBS="-L$INSTALL_ROOT/lib -lz"
+
 make -j $CPU_COUNT
 make install prefix=$PREFIX
 

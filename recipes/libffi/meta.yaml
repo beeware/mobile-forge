@@ -1,0 +1,10 @@
+package:
+  name: libffi
+  version: 3.4.6
+
+build:
+  number: 1
+
+source:
+  url: https://github.com/beeware/cpython-apple-source-deps/releases/download/libFFI-{version}-{build}/libffi-{version}-{build}-{sdk}.{arch}.tar.gz
+  strip: 0

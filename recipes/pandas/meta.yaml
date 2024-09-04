@@ -1,3 +1,8 @@
 package:
   name: pandas
   version: 1.5.3
+
+build:
+  # This is only needed because CXX is configured to be `clang`, not `clang++`
+  script_env:
+    - LDFLAGS=-lstdc++

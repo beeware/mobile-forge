@@ -1,0 +1,10 @@
+package:
+  name: ninja
+  version: 1.11.1
+
+build:
+  number: 1
+
+source:
+  url: https://files.pythonhosted.org/packages/3d/6e/04ed11bb244039908f6f212cb5f3e97933e238655248e4ce307c1687ba1f/ninja-1.11.1.1-py2.py3-none-macosx_10_9_universal2.macosx_10_9_x86_64.macosx_11_0_arm64.macosx_11_0_universal2.whl
+  strip: 0

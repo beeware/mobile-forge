@@ -1,0 +1,15 @@
+package:
+  name: openssl
+  version: 3.0.14
+
+{% if version and version[0] == 1 %}
+source:
+  # OpenSSL 1.1 uses a version number scheme that isn't CPython compatible (1.1.1w)
+  # Generate a wheel that is "1.1.1", but pull down a specific revision source
+  url: https://github.com/beeware/cpython-apple-source-deps/releases/download/OpenSSL-{version}w-{build}/openssl-{version}w-{build}-{sdk}.{arch}.tar.gz
+  strip: 0
+{% else %}
+source:
+  url: https://github.com/beeware/cpython-apple-source-deps/releases/download/OpenSSL-{version}-{build}/openssl-{version}-{build}-{sdk}.{arch}.tar.gz
+  strip: 0
+{% endif %}

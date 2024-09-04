@@ -1,0 +1,10 @@
+package:
+  name: xz
+  version: 5.4.7
+
+build:
+  number: 1
+
+source:
+  url: https://github.com/beeware/cpython-apple-source-deps/releases/download/XZ-{version}-{build}/xz-{version}-{build}-{sdk}.{arch}.tar.gz
+  strip: 0

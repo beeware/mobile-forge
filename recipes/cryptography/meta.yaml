@@ -1,6 +1,12 @@
 package:
   name: cryptography
+  # This is the last version that didn't require Rust compilation.
   version: 3.4.8
+  # version: 42.0.8
+
+# version is only a jinja variable if there's an override;
+# this first branch is the default (for now).
+{% if not version or version <= (3, 4, 8) %}
 
 patches:
   - random.patch
@@ -12,8 +18,27 @@ build:
 requirements:
   build:
     - cffi 1.15.1
-    - setuptools-rust 0.11.6
-    # "setuptools_rust @ git+https://github.com/freakboy3742/setuptools_rust@iOS-support",
+    - setuptools-rust
   host:
-    - openssl 1.1.1v
-    # - openssl 3.1.2
+    - openssl 1.1.1
+
+{% elif version and version[0] < 43 %}
+
+requirements:
+  build:
+    - cffi 1.15.1
+    - setuptools-rust
+  host:
+    - openssl 3.0.14
+
+{% else %}
+# cryptography 43.0.0 switched to maturin as a build backend.
+# This config doesn't work yet, because we haven't got an iOS-patched maturin.
+requirements:
+  build:
+    - cffi 1.15.1
+    - maturin
+  host:
+    - openssl 3.0.14
+
+{% endif %}

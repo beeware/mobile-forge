@@ -3,11 +3,12 @@
 usage() {
     echo "Usage:"
     echo
-    echo "    source $1 <python version>"
+    echo "    source $1 <python version> [<support revision>]"
     echo
     echo "for example:"
     echo
     echo "    source $1 3.12"
+    echo "    source $1 3.12 3"
     echo
 }
 
@@ -27,97 +28,84 @@ if [ -z "$1" ]; then
 fi
 
 PYTHON_VER=$1
-CMAKE_VERSION="3.27.4"
-
-if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
-    echo "PYTHON_APPLE_SUPPORT not defined."
-    return
-fi
-
-if [ ! -d $PYTHON_APPLE_SUPPORT/install ]; then
-    echo "PYTHON_APPLE_SUPPORT does not point at a valid loation."
-    return
-fi
-
-PYTHON_FOLDER=$(echo `ls -1d $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VER.*` | sort -n -r | head -n1)
-PYTHON_VERSION=$(basename $PYTHON_FOLDER | cut -d "-" -f 2)
-
-if [ ! -x $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
-    echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION macOS binary."
-    echo $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VERSION/bin/python$PYTHON_VER
-    return
-fi
-
-if [ ! -e $PYTHON_APPLE_SUPPORT/install/iOS/iphoneos.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
-    echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION iOS ARM64 device binary."
-    return
-fi
-
-if [ ! -e $PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
-    echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION iOS ARM64 simulator binary."
-    return
-fi
-
-if [ ! -e $PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.x86_64/python-$PYTHON_VERSION/bin/python$PYTHON_VER ]; then
-    echo "PYTHON_APPLE_SUPPORT does not appear to contain a Python $PYTHON_VERSION iOS x86-64 simulator binary."
-    return
-fi
-
-# Ensure CMake is installed
-if ! [ -d "tools/CMake.app" ]; then
-    if ! [ -f "downloads/cmake-${CMAKE_VERSION}-macos-universal.tar.gz" ]; then
-        echo "Downloading CMake"
-        mkdir -p downloads
-        curl --location "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-macos-universal.tar.gz" --output downloads/cmake-${CMAKE_VERSION}-macos-universal.tar.gz
-    fi
-
-    echo "Installing CMake"
-    mkdir -p tools
-    tar -xzf downloads/cmake-${CMAKE_VERSION}-macos-universal.tar.gz
-    mv cmake-${CMAKE_VERSION}-macos-universal/CMake.app tools
-    rm -rf cmake-${CMAKE_VERSION}-macos-universal
-fi
 
 if [ ! -z "$VIRTUAL_ENV" ]; then
-    deactivate
+    echo "A virtual environment is already active; deactivate that environment before calling this script."
+    return
+fi
+
+mkdir -p deps
+mkdir -p dist
+mkdir -p downloads
+
+if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
+    export MOBILE_FORGE_SUPPORT_PATH=$(pwd)/support
+
+    if [ ! -d "$MOBILE_FORGE_SUPPORT_PATH/$PYTHON_VER/iOS" ]; then
+        if [ -z "$2" ]; then
+            case $PYTHON_VER in
+                3.9)  SUPPORT_REVISION=13 ;;
+                3.10) SUPPORT_REVISION=9 ;;
+                3.11) SUPPORT_REVISION=4 ;;
+                3.12) SUPPORT_REVISION=3 ;;
+                3.13) SUPPORT_REVISION=0 ;;
+                *)
+                    echo "No default support revision for $PYTHON_VER is known; it must be specified manually"
+                    return
+                    ;;
+            esac
+        else
+            SUPPORT_REVISION=$2
+        fi
+
+        if [ ! -e "downloads/Python-${PYTHON_VER}-iOS-support.b${SUPPORT_REVISION}.tar.gz" ]; then
+            echo "Downloading Python ${PYTHON_VER} b${SUPPORT_REVISION} support package"
+            curl --location "https://github.com/beeware/Python-Apple-support/releases/download/${PYTHON_VER}-b${SUPPORT_REVISION}/Python-${PYTHON_VER}-iOS-support.b${SUPPORT_REVISION}.tar.gz" --output downloads/Python-${PYTHON_VER}-iOS-support.b${SUPPORT_REVISION}.tar.gz
+        fi
+
+        echo "Unpacking Python ${PYTHON_VER} b${SUPPORT_REVISION} support package"
+        mkdir -p $MOBILE_FORGE_SUPPORT_PATH/$PYTHON_VER/iOS
+        pushd $MOBILE_FORGE_SUPPORT_PATH/$PYTHON_VER/iOS
+        tar zxf ../../../downloads/Python-${PYTHON_VER}-iOS-support.b${SUPPORT_REVISION}.tar.gz
+        popd
+    fi
+else
+    export MOBILE_FORGE_SUPPORT_PATH=$PYTHON_APPLE_SUPPORT/support
+fi
+echo "Using $MOBILE_FORGE_SUPPORT_PATH as the support folder"
+
+BUILD_PYTHON=$(which python$PYTHON_VER)
+if [ $? -ne 0 ]; then
+    echo "Can't find a Python $PYTHON_VER binary on the path."
+    return
+fi
+
+if [ ! -e $MOBILE_FORGE_SUPPORT_PATH/$PYTHON_VER/iOS/Python.xcframework/ios-arm64/bin/python$PYTHON_VER ]; then
+    echo "Support folder does not appear to contain a Python $PYTHON_VER iOS device binary."
+    return
+fi
+
+if [ ! -e $MOBILE_FORGE_SUPPORT_PATH/$PYTHON_VER/iOS/Python.xcframework/ios-arm64_x86_64-simulator/bin/python$PYTHON_VER ]; then
+    echo "Support folder does not appear to contain a Python $PYTHON_VER iOS simulator binary."
+    return
 fi
 
 if [ ! -d ./venv$PYTHON_VER ]; then
     echo "Creating Python $PYTHON_VER virtual environment for build..."
-    $PYTHON_APPLE_SUPPORT/install/macOS/macosx/python-$PYTHON_VERSION/bin/python$PYTHON_VER -m venv venv$PYTHON_VER
+    echo "Using $BUILD_PYTHON as the build python"
+    $BUILD_PYTHON -m venv venv$PYTHON_VER
 
     source ./venv$PYTHON_VER/bin/activate
 
     pip install -U pip
     pip install -e . wheel
 
-    echo "Building platform dependency wheels..."
-    python -m make_dep_wheels iOS
-    if [ $? -ne 0 ]; then
-        return
-    fi
-
     echo "Python $PYTHON_VERSION environment has been created."
     echo
 else
-    echo "Using existing Python $PYTHON_VERSION environment."
+    echo "Using existing Python $PYTHON_VER environment."
     source ./venv$PYTHON_VER/bin/activate
 fi
-
-# Create wheels for ninja that can be installed in the host environment
-if ! [ -f "dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl" ]; then
-    echo "Downloading Ninja"
-    python -m pip wheel --no-deps -w dist ninja==1.11.1
-    mv dist/ninja-1.11.1-*.whl dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl
-    cp dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl dist/ninja-1.11.1-py3-none-ios_12_0_iphonesimulator_x86_64.whl
-    cp dist/ninja-1.11.1-py3-none-ios_12_0_iphoneos_arm64.whl dist/ninja-1.11.1-py3-none-ios_12_0_iphonesimulator_arm64.whl
-fi
-
-export PATH="$PATH:$PYTHON_APPLE_SUPPORT/support/$PYTHON_VER/iOS/bin:$(pwd)/tools/CMake.app/Contents/bin"
-
-export MOBILE_FORGE_IPHONEOS_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphoneos.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
-export MOBILE_FORGE_IPHONESIMULATOR_ARM64=$PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.arm64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
-export MOBILE_FORGE_IPHONESIMULATOR_X86_64=$PYTHON_APPLE_SUPPORT/install/iOS/iphonesimulator.x86_64/python-$PYTHON_VERSION/bin/python$PYTHON_VER
 
 echo
 echo "You can now build packages with forge; e.g.:"

@@ -1,5 +1,7 @@
 import traceback
 
+verbose = False
+
 
 def log(log_file, *args, debug=False, **kwargs):
     """Log output to the screen, and to the log file.
@@ -10,7 +12,7 @@ def log(log_file, *args, debug=False, **kwargs):
         file.
     :param kwargs: Additional keyword arguments to pass to print.
     """
-    if not debug:
+    if verbose or not debug:
         print(*args, **kwargs)
     if log_file:
         print(*args, **kwargs, file=log_file)

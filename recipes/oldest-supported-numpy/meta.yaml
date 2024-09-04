@@ -19,7 +19,7 @@
 # the build process.
 package:
   name: oldest-supported-numpy
-  version: 2023.8.3
+  version: 2023.12.21
 
 patches:
   - mobile.patch
