@@ -143,7 +143,7 @@ def main():
             9: ["numpy:1.19.3"],
             10: ["numpy:1.21.6"],
             11: ["numpy:1.23.2"],
-            12: ["numpy:1.26.2"],
+            # 12: ["numpy:1.26.2"],  # This is the current "default" version
         }.get(sys.version_info.minor, [])
 
         if args.subset in {"all", "py", "smoke", "smoke-py"}:

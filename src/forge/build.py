@@ -78,8 +78,7 @@ class Builder(ABC):
             log(self.log_file, f"No {target} requirements.")
 
     @abstractmethod
-    def download_source_url(self):
-        ...
+    def download_source_url(self): ...
 
     def download_source(self):
         """Download the source tarball."""
@@ -374,7 +373,7 @@ class SimplePackageBuilder(Builder):
         info_path = self.build_path / "wheel" / f"{name}-{version}.dist-info"
 
         log(self.log_file, f"\n[{self.cross_venv}] Writing wheel metadata")
-        info_path.mkdir()
+        info_path.mkdir(exist_ok=True)
 
         # Write the packaging metadata
         self.write_message_file(
@@ -421,6 +420,7 @@ class SimplePackageBuilder(Builder):
             "BUILD_TRIPLET": f"{os.uname().machine}-apple-darwin",
             "CPU_COUNT": str(multiprocessing.cpu_count()),
             "PREFIX": str(self.build_path / "wheel" / "opt"),
+            "VERSION": self.package.version,
         }
         for line in self.package.meta["build"]["script_env"]:
             key, value = line.split("=", 1)
