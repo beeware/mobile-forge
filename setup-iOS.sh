@@ -98,6 +98,7 @@ if [ ! -d ./venv$PYTHON_VER ]; then
     source ./venv$PYTHON_VER/bin/activate
 
     pip install -U pip
+    pip install -U setuptools
     pip install -e . wheel
 
     echo "Python $PYTHON_VERSION environment has been created."
