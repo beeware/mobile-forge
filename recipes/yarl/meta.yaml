@@ -3,5 +3,5 @@ package:
   version: 1.9.7
 
 requirements:
-  build:
+  host:
     - Cython
