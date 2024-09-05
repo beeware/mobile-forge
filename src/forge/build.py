@@ -160,7 +160,14 @@ class Builder(ABC):
             # not anything dependent on the Python environment.
             subprocess.run(
                 self.log_file,
-                ["patch", "-p1", "--ignore-whitespace", "--input", str(patchfile)],
+                [
+                    "patch",
+                    "-p1",
+                    "--ignore-whitespace",
+                    "--quiet",
+                    "--input",
+                    str(patchfile),
+                ],
                 cwd=self.build_path,
             )
             patched = True

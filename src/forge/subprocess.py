@@ -24,7 +24,7 @@ def run(logfile, *args, **kwargs):
     kwargs["stdout"] = stdlib_subprocess.PIPE
     kwargs["stderr"] = stdlib_subprocess.STDOUT
     # use line-buffered output by default
-    kwargs["bufsize"] = 1
+    kwargs["bufsize"] = 0
     # use text mode
     kwargs["encoding"] = "UTF-8"
     kwargs["text"] = True
