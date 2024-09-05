@@ -17,7 +17,7 @@ build:
 
 requirements:
   build:
-    - cffi 1.15.1
+    - cffi
     - setuptools-rust
   host:
     - openssl 1.1.1
@@ -26,7 +26,7 @@ requirements:
 
 requirements:
   build:
-    - cffi 1.15.1
+    - cffi
     - setuptools-rust
   host:
     - openssl 3.0.14
@@ -36,7 +36,7 @@ requirements:
 # This config doesn't work yet, because we haven't got an iOS-patched maturin.
 requirements:
   build:
-    - cffi 1.15.1
+    - cffi
     - maturin
   host:
     - openssl 3.0.14

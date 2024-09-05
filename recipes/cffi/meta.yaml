@@ -1,10 +1,14 @@
 package:
   name: cffi
-  version: 1.15.1
+  version: 1.17.1
 
+{% if version and version <= (1, 16, 0) %}
+patches:
+  - mobile-1.15.1.patch
+{% else %}
 patches:
   - mobile.patch
-
+{% endif %}
 requirements:
   host:
     - libffi 3.4.6

@@ -1,9 +1,14 @@
 package:
   name: Pillow
-  version: 9.4.0
+  version: 10.4.0
 
+{% if version and version <= (9, 4, 0) %}
+patches:
+  - setup-9.4.0.patch
+{% else %}
 patches:
   - setup.patch
+{% endif %}
 
 build:
   script_env:

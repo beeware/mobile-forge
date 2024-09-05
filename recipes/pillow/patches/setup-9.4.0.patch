@@ -1,7 +1,10 @@
-diff -ur pillow-10.4.0-orig/setup.py pillow-10.4.0/setup.py
---- pillow-10.4.0-orig/setup.py	2024-07-01 14:02:01
-+++ pillow-10.4.0/setup.py	2024-09-05 14:20:16
-@@ -422,10 +422,22 @@
+Common subdirectories: Pillow-9.4.0-orig/Tests and Pillow-9.4.0/Tests
+Common subdirectories: Pillow-9.4.0-orig/depends and Pillow-9.4.0/depends
+Common subdirectories: Pillow-9.4.0-orig/docs and Pillow-9.4.0/docs
+diff -u Pillow-9.4.0-orig/setup.py Pillow-9.4.0/setup.py
+--- Pillow-9.4.0-orig/setup.py	2023-01-02 08:17:32
++++ Pillow-9.4.0/setup.py	2023-09-21 10:16:17
+@@ -408,10 +408,19 @@
                  self.extensions.remove(extension)
                  break
 
@@ -16,17 +19,14 @@ diff -ur pillow-10.4.0-orig/setup.py pillow-10.4.0/setup.py
 +                ("watchos", False): ["--sdk", "watchos"],
 +                ("watchos", True): ["--sdk", "watchsimulator"],
 +                ("darwin", False): [],
-+            }[
-+                sys.platform,
-+                getattr(sys.implementation, "_multiarch", "").endswith("simulator"),
-+            ]
++            }[sys.platform, getattr(sys.implementation, "_multiarch", "").endswith("simulator")]
              sdk_path = (
 -                subprocess.check_output(["xcrun", "--show-sdk-path"])
 +                subprocess.check_output(["xcrun", "--show-sdk-path"] + sdk)
                  .strip()
                  .decode("latin1")
              )
-@@ -580,13 +592,18 @@
+@@ -556,10 +564,15 @@
                  _add_directory(library_dirs, "/usr/X11/lib")
                  _add_directory(include_dirs, "/usr/X11/include")
 
@@ -35,9 +35,6 @@ diff -ur pillow-10.4.0-orig/setup.py pillow-10.4.0/setup.py
              if sdk_path:
                  _add_directory(library_dirs, os.path.join(sdk_path, "usr", "lib"))
                  _add_directory(include_dirs, os.path.join(sdk_path, "usr", "include"))
-
-                 for extension in self.extensions:
-                     extension.extra_compile_args = ["-Wno-nullability-completeness"]
 +        elif sys.platform in {"ios", "tvos", "watchos"}:
 +            sdk_path = self.get_apple_sdk_path()
 +            if sdk_path:
