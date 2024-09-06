@@ -25,8 +25,8 @@ jobs:
     with:
       pre-commit-source: "pre-commit"
 
-  unit-tests:
-    name: Unit tests
+  test:
+    name: Test builds
     needs: pre-commit
     runs-on: macOS-latest
     strategy:
@@ -52,11 +52,11 @@ jobs:
     # Build an example of a native package
     - name: Build libjpeg
       run: |
-        source ./venv$(cut -d- -f1 <<< ${{ matrix.python-version }}/bin/activate
+        source ./venv$(cut -d- -f1 <<< ${{ matrix.python-version }})/bin/activate
         forge iOS libjepg
 
     # Build an example of a simple Python package
     - name: Build lru-dict
       run: |
-        source ./venv$(cut -d- -f1 <<< ${{ matrix.python-version }}/bin/activate
+        source ./venv$(cut -d- -f1 <<< ${{ matrix.python-version }})/bin/activate
         forge iOS lru-dict
