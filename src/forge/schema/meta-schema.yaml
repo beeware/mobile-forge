@@ -26,6 +26,9 @@ properties:
         properties:
           url:
             type: string
+          strip:        # The strip depth for the unpacking process
+            type: integer
+            default: 1
         additionalProperties: false
       - type: object    # Clone a Git repository.
         required: [git_url, git_rev]
@@ -56,7 +59,7 @@ properties:
     properties:
       number:           # Used as the wheel build tag.
         type: integer
-        default: 0
+        default: 1
       script_env:       # Environment variables in the form KEY=value (no spaces around =).
         type: array
         default: []

@@ -70,9 +70,11 @@ class Package:
 
         # Render the meta template.
         meta_str = jinja2.Template(meta_template).render(
-            version=tuple(int(v) for v in override_version.split("."))
-            if override_version
-            else None,
+            version=(
+                tuple(int(v) for v in override_version.split("."))
+                if override_version
+                else None
+            ),
             py_version=sys.version_info,
         )
 

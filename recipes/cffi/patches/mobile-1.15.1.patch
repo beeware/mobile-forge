@@ -1,6 +1,6 @@
-diff -ru cffi-1.17.1-orig/src/c/malloc_closure.h cffi-1.17.1/src/c/malloc_closure.h
---- cffi-1.17.1-orig/src/c/malloc_closure.h	2022-07-01 00:38:43.000000000 +0800
-+++ cffi-1.17.1/src/c/malloc_closure.h	2022-09-28 12:08:58.000000000 +0800
+diff -ru cffi-1.15.1-orig/c/malloc_closure.h cffi-1.15.1/c/malloc_closure.h
+--- cffi-1.15.1-orig/c/malloc_closure.h	2022-07-01 00:38:43.000000000 +0800
++++ cffi-1.15.1/c/malloc_closure.h	2022-09-28 12:08:58.000000000 +0800
 @@ -42,6 +42,8 @@
          return 0;
      ret = 0;
@@ -19,9 +19,9 @@ diff -ru cffi-1.17.1-orig/src/c/malloc_closure.h cffi-1.17.1/src/c/malloc_closur
      fclose (f);
      return ret;
  }
-diff -ru cffi-1.17.1-orig/setup.py cffi-1.17.1/setup.py
---- cffi-1.17.1-orig/setup.py	2022-07-01 00:38:43.000000000 +0800
-+++ cffi-1.17.1/setup.py	2022-09-28 12:09:26.000000000 +0800
+diff -ru cffi-1.15.1-orig/setup.py cffi-1.15.1/setup.py
+--- cffi-1.15.1-orig/setup.py	2022-07-01 00:38:43.000000000 +0800
++++ cffi-1.15.1/setup.py	2022-09-28 12:09:26.000000000 +0800
 @@ -9,8 +9,7 @@
 
  sources = ['c/_cffi_backend.c']

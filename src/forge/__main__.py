@@ -4,6 +4,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from forge import logger
 from forge.cross import CrossVEnv
 from forge.package import Package
 from forge.pypi import get_pypi_versions
@@ -70,6 +71,9 @@ def main():
 
     args = parser.parse_args()
 
+    if args.verbose:
+        logger.verbose = True
+
     try:
         platforms = [
             (sdk, CrossVEnv.BASE_VERSION[args.host], arch)
@@ -114,6 +118,12 @@ def main():
         if args.subset in {"all", "non-py", "smoke", "smoke-non-py"}:
             build_targets.extend(
                 [
+                    "ninja",
+                    "bzip2",
+                    "xz",
+                    "libffi",
+                    "openssl:1.1.1",  # needed for cryptography builds
+                    "openssl",
                     "libjpeg",
                     "freetype",
                 ]
@@ -130,13 +140,11 @@ def main():
         # predictably, the oldest version of numpy known to work on a given Python
         # version. This is done for Python ABI compatibility.
         oldest_supported_numpy = {
-            8: "numpy:1.17.3",
-            9: "numpy:1.19.3",
-            10: "numpy:1.21.6",
-            11: "numpy:1.23.2",
-            12: "numpy:1.26.0",
-            13: "numpy:1.26.0",
-        }[sys.version_info.minor]
+            9: ["numpy:1.19.3"],
+            10: ["numpy:1.21.6"],
+            11: ["numpy:1.23.2"],
+            # 12: ["numpy:1.26.2"],  # This is the current "default" version
+        }.get(sys.version_info.minor, [])
 
         if args.subset in {"all", "py", "smoke", "smoke-py"}:
             build_targets.extend(
@@ -145,15 +153,7 @@ def main():
                     "pillow",
                     "numpy",
                 ]
-                # On Python 3.12 and 3.13, the oldest supported numpy *is* the only version of
-                # numpy that is supported.
-                + (
-                    [
-                        oldest_supported_numpy,
-                    ]
-                    if sys.version_info.minor in {12, 13}
-                    else []
-                )
+                + oldest_supported_numpy
                 + [
                     "pandas",
                     "cffi",
@@ -168,12 +168,18 @@ def main():
                     "argon2-cffi",
                     "bcrypt",
                     "bitarray",
-                    "blis",
                     "brotli",
-                    "typed-ast",
                     "yarl",
                 ]
             )
+            if sys.version_info < (3, 13):
+                build_targets.extend(
+                    [
+                        # No longer maintained.
+                        "typed-ast",
+                    ]
+                )
+
     else:
         build_targets = args.build_targets
 

@@ -1,9 +1,20 @@
 package:
   name: Pillow
-  version: 9.4.0
+  version: 10.4.0
 
+{% if version and version <= (9, 4, 0) %}
+patches:
+  - setup-9.4.0.patch
+{% else %}
 patches:
   - setup.patch
+{% endif %}
+
+build:
+  script_env:
+    # libfreetype references both libz and libbz2
+    # but doesn't link them into the static library
+    - LDFLAGS=-lz -lbz2
 
 requirements:
   host:

@@ -1,84 +1,72 @@
 Mobile Forge
 ============
 
-This is a forge-like environment that can be used to build wheels for mobile platforms.
-It is currently only tested for iOS, but in theory, it should also be usable for
-Android. Contributions to verify Android support, and to add more package recipes, are
-definitely encouraged.
+This is a forge-like environment that can be used to build wheels for mobile
+platforms. It is currently only tested for iOS, but in theory, it should also be
+usable for Android. Contributions to verify Android support, tvOS and watchOS
+support, and to add more package recipes, are enthusiastically encouraged.
 
 Usage
 -----
 
-Before using Mobile Forge, you'll need to compile Python for your build platform (e.g.,
-your laptop), and for host platform (e.g., for iOS). It may be helpful to use a project
-like `Python-Apple-support <https://github.com/beeware/Python-Apple-support>`__ to
-manage this compilation process.
+This repo contains an activation script that will configure your environment so
+it's ready to use. To set up a build environment:
 
-Using Python-Apple-support
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If you *do* use Python-Apple-support, this repo contains an activation script that will
-configure your environment so it's ready to use.
-
-1. Set an environment variable declaring the location of your Python-Apple-support
-   checkout::
-
-    $ export PYTHON_APPLE_SUPPORT=/path/to/Python-Apple-support
-
-2. Clone this repository, and run the activate script for the Python version you want to
-   use::
+1. Clone this repository::
 
     $ git clone https://github.com/beeware/mobile-forge.git
     $ cd mobile-forge
+
+2. Run the script for the Python version you want to use, providing the support
+   revision::
+
     $ source ./setup-iOS.sh 3.11
 
-This will create a Python virtual environment, install mobile forge, and provide
-some hints at forge commands you can run.
+Running this script will create a Python virtual environment, install Mobile
+Forge and some other required tools, and provide some hints at forge commands
+you can run.
 
 If a virtual environment already exists, it will be activated, and the same hints
 displayed.
 
-The hard way
-~~~~~~~~~~~~
+``lru-dict`` is a good first package to try compiling::
 
-If you're *not* using Python-Apple-support, the setup process requires more manual steps::
+  (venv3.11) $ forge iOS lru-dict
 
-1. Create and activate a virtual environment using the Python build platform, using the
-   build platform Python compiled in step 1.
+Or, to build a wheel for a single architecture::
 
-2. Clone this repository, and install it into your freshly created virtual environment::
-
-    (venv3.11) $ git clone https://github.com/beeware/mobile-forge.git
-    (venv3.11) $ cd mobile-forge
-    (venv3.11) $ pip install -e .
-
-3. Ensure your ``PATH`` contains any tools that were necessary to compile the host CPython,
-   and does *not* contain any macOS development libraries. Mobile-forge will clean the ``PATH``
-   to remove known problematic paths (e.g., paths added by Homebrew, rbenv, npm, etc).
-
-4. Set environment variables that define the location of the Python executable for each
-   of the **host** platforms you intend to target. For iOS, this means defining
-   3 environment variables::
-
-    (venv3.11) $ export MOBILE_FORGE_IPHONEOS_ARM64=...
-    (venv3.11) $ export MOBILE_FORGE_IPHONESIMULATOR_ARM64=...
-    (venv3.11) $ export MOBILE_FORGE_IPHONESIMULATOR_X86_64=...
-
-5. Build a package. The ``packages`` folder contains recipes for packages. ``lru-dict``
-   is a good first package to try::
-
-    (venv3.11) $ forge iOS lru-dict
-
-   Or, to build a wheel for a single architecture::
-
-    (venv3.11) $ forge iphonesimulator:12.0:arm64 lru-dict
+  (venv3.11) $ forge iphonesimulator:12.0:arm64 lru-dict
 
 Once this command completes, there should be a wheel for each platform in the ``dist``
 folder. A log for each successful build will be in the ``logs`` folder; a log for each
 unsuccessful build (if there are any) will be in the ``errors`` folder.
 
+Local support package builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+By default, the Mobile Forge setup script will download a support revision and
+use the binaries in the downloaded package. However, you can also use a local
+build of the support package.
+
+After cloning and building `Python-Apple-support
+<https://github.com/beeware/Python-Apple-support>`__, set the
+``PYTHON_APPLE_SUPPORT`` environment variable to the root of the
+Python-Apple-support checkout. Then run the ``setup-iOS.sh`` script to configure
+your environment.
+
+Specific support package builds
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The Mobile Forge setup script will download a support package for any supported
+Python version. The version that is downloaded is hard-coded in the setup
+script. To use a specific revision rather than the default, add the revision
+number as an additional argument to the setup script. For example, to use
+revision 4 of the 3.11 support package, run::
+
+    $ source ./setup-iOS.sh 3.11 4
+
 The special snowflakes
-~~~~~~~~~~~~~~~~~~~~~~
+----------------------
 
 Mobile Forge is trying to support multiple packages, building on multiple Python
 versions, for multiple architectures; and some of those Python versions were released
@@ -86,7 +74,7 @@ before the release of ARM64 macOS hardware. As a result, some versions of some p
 have some quirks that must be taken into account.
 
 Pandas
-^^^^^^
+~~~~~~
 
 Pandas uses a meta-package named ``oldest-supported-numpy`` to ensure ABI compatibility
 during compilation. However, this can install a different version of numpy, depending on
@@ -97,17 +85,10 @@ as version 2999.1.1, which ensures that consistent versions are available for bu
 purposes; however, this wheel *should not* be published.
 
 Cryptography
-^^^^^^^^^^^^
+~~~~~~~~~~~~
 
 Cryptography currently builds a *very* old version (3.4.8). This is the last version
-that could be built without a Rust compiler. The recipe works as is on all Python
-versions *except* Python 3.8 on ARM64, because there was no ARM64-compatible wheel
-published for cffi 1.15.1. However, if you run::
-
-    $ pip wheel -w dist --no-deps cffi==1.15.1
-
-you can build a universal Python3.8 CFFI wheel for CFFI 1.15.1, which can be used to
-satisfy this build-time requirement.
+that could be built without a Rust compiler.
 
 What now?
 ---------

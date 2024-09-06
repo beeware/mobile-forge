@@ -1,58 +1,57 @@
-Only in 2023.8.3: oldest_supported_numpy.egg-info
-diff -ur 2023.8.3/setup.cfg 2999.1.1/setup.cfg
---- 2023.8.3/setup.cfg	2023-09-29 10:26:22
-+++ 2999.1.1/setup.cfg	2023-09-29 10:28:58
-@@ -6,44 +6,17 @@
+diff -r -u oldest-supported-numpy-2023.12.21-orig/setup.cfg oldest-supported-numpy-2023.12.21/setup.cfg
+--- oldest-supported-numpy-2023.12.21-orig/setup.cfg	2023-12-22 00:03:09
++++ oldest-supported-numpy-2023.12.21/setup.cfg	2024-09-03 08:28:54
+@@ -6,46 +6,18 @@
  author_email = thomas.robitaille@gmail.com
  license = BSD
  url = https://github.com/scipy/oldest-supported-numpy
--version = 2023.08.03
-+version = 2999.01.01
+-version = 2023.12.21
++version = 2099.1.1
 
  [options]
--python_requires = >=3.7
+ python_requires = >=3.7
 -install_requires =
 -
 -	numpy==1.16.0; python_version=='3.7' and platform_system=='AIX' and platform_machine!='loongarch64' and platform_python_implementation != 'PyPy'
 -
--	numpy==1.23.3; python_version=='3.9' and platform_system=='OS400' and platform_machine!='loongarch64'
+-	numpy==1.23.3; python_version=='3.9' and platform_system=='OS400' and platform_machine!='loongarch64' and platform_python_implementation!='PyPy'
 -
--	numpy==1.19.2; python_version=='3.7' and platform_machine=='aarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'
--	numpy==1.19.2; python_version=='3.8' and platform_machine=='aarch64' and platform_python_implementation != 'PyPy'
+-	numpy==1.19.3; python_version=='3.7' and platform_machine=='aarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'
+-	numpy==1.19.3; python_version=='3.8' and platform_machine=='aarch64' and platform_python_implementation != 'PyPy'
 -
 -	numpy==1.21.0; python_version=='3.7' and platform_machine=='arm64' and platform_system=='Darwin' and platform_python_implementation!='PyPy'
 -	numpy==1.21.0; python_version=='3.8' and platform_machine=='arm64' and platform_system=='Darwin' and platform_python_implementation!='PyPy'
--	numpy==1.21.0; python_version=='3.9' and platform_machine=='arm64' and platform_system=='Darwin'
+-	numpy==1.21.0; python_version=='3.9' and platform_machine=='arm64' and platform_system=='Darwin' and platform_python_implementation!='PyPy'
 -
 -	numpy==1.17.5; python_version=='3.8' and platform_machine=='s390x' and platform_python_implementation != 'PyPy'
 -
--	numpy==1.22.2; platform_machine=='loongarch64' and python_version>='3.8' and python_version<'3.11'
+-	numpy==1.22.2; platform_machine=='loongarch64' and python_version>='3.8' and python_version<'3.11' and platform_python_implementation!='PyPy'
 -
 -	numpy==1.14.5; python_version=='3.7' and platform_machine=='arm64' and platform_system=='Windows' and platform_python_implementation != 'PyPy'
 -	numpy==1.17.3; python_version=='3.8' and platform_machine=='arm64' and platform_system=='Windows' and platform_python_implementation != 'PyPy'
--	numpy==1.19.3; python_version=='3.9' and platform_machine=='arm64' and platform_system=='Windows'
+-	numpy==1.19.3; python_version=='3.9' and platform_machine=='arm64' and platform_system=='Windows' and platform_python_implementation != 'PyPy'
 -
 -	numpy==1.14.5; python_version=='3.7' and platform_machine not in 'arm64|aarch64|loongarch64' and platform_system!='AIX' and platform_python_implementation != 'PyPy'
 -	numpy==1.17.3; python_version=='3.8' and platform_machine not in 'arm64|aarch64|s390x|loongarch64' and platform_python_implementation != 'PyPy'
--	numpy==1.19.3; python_version=='3.9' and platform_system not in 'OS400' and platform_machine not in 'arm64|loongarch64'
+-	numpy==1.19.3; python_version=='3.9' and platform_system not in 'OS400' and platform_machine not in 'arm64|loongarch64' and platform_python_implementation != 'PyPy'
 -	numpy==1.21.6; python_version=='3.10' and platform_machine!='loongarch64'
-+python_requires = >=3.8
 +install_requires =
++
 +	numpy==1.17.3; python_version=='3.8'
 +	numpy==1.21.0; python_version=='3.9'
 +	numpy==1.21.6; python_version=='3.10'
  	numpy==1.23.2; python_version=='3.11'
+ 	numpy==1.26.2; python_version=='3.12'
 -
 -	numpy==1.19.0; python_version=='3.6' and platform_machine!='loongarch64' and platform_python_implementation=='PyPy'
 -	numpy==1.20.0; python_version=='3.7' and platform_machine!='loongarch64' and platform_python_implementation=='PyPy'
 -	numpy==1.22.2; python_version=='3.8' and platform_machine!='loongarch64' and platform_python_implementation=='PyPy'
+-	numpy==1.25.0; python_version=='3.9' and platform_python_implementation=='PyPy'
 -
- 	numpy; python_version>='3.12'
+-	numpy; python_version>='3.13'
 
  [egg_info]
 -tag_build =
 +tag_build =
  tag_date = 0
 -
-Only in 2023.8.3: setup.cfg.orig
-Only in 2023.8.3: setup.cfg.rej

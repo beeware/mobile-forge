@@ -1,0 +1,10 @@
+package:
+  name: bzip2
+  version: 1.0.8
+
+build:
+  number: 1
+
+source:
+  url: https://github.com/beeware/cpython-apple-source-deps/releases/download/BZip2-{version}-{build}/bzip2-{version}-{build}-{sdk}.{arch}.tar.gz
+  strip: 0

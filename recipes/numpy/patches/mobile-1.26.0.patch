@@ -83,14 +83,17 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/linkers/detect.py num
 diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/linkers/linkers.py numpy-1.26.0/vendored-meson/meson/mesonbuild/linkers/linkers.py
 --- numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/linkers/linkers.py	1970-01-01 08:00:00
 +++ numpy-1.26.0/vendored-meson/meson/mesonbuild/linkers/linkers.py	2023-10-17 14:59:26
-@@ -829,6 +829,12 @@
+@@ -829,6 +829,15 @@
          return ["-Wl,-cache_path_lto," + path]
 
 
 +class AppleMobileDynamicLinker(AppleDynamicLinker):
 +    # iOS/tvOS/watchOS need to be linked with -dynamiclib, not -bundle
++    def get_allow_undefined_args(self) -> T.List[str]:
++        return ["-framework", "Python"]
++
 +    def get_std_shared_module_args(self, options: "KeyedOptionDictType") -> T.List[str]:
-+        return ["-dynamiclib"] + self._apply_prefix("-undefined,dynamic_lookup")
++        return ["-dynamiclib", "-framework", "Python"]
 +
 +
  class LLVMLD64DynamicLinker(AppleDynamicLinker):
@@ -131,15 +134,6 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson/mesonbuild/utils/universal.py nu
 diff -ru numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py numpy-1.26.0/vendored-meson/meson-python/mesonpy/__init__.py
 --- numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py	1970-01-01 08:00:00
 +++ numpy-1.26.0/vendored-meson/meson-python/mesonpy/__init__.py	2023-10-03 14:33:05
-@@ -133,7 +133,7 @@
-
- _SUFFIXES = importlib.machinery.all_suffixes()
- _EXTENSION_SUFFIXES = importlib.machinery.EXTENSION_SUFFIXES
--_EXTENSION_SUFFIX_REGEX = re.compile(r'^\.(?:(?P<abi>[^.]+)\.)?(?:so|pyd|dll)$')
-+_EXTENSION_SUFFIX_REGEX = re.compile(r'^\.(?:(?P<abi>[^.]+)\.)?(?:so|pyd|dll|dylib)$')
- assert all(re.match(_EXTENSION_SUFFIX_REGEX, x) for x in _EXTENSION_SUFFIXES)
-
-
 @@ -665,7 +665,8 @@
          self._install_dir.mkdir(exist_ok=True, parents=True)
 
