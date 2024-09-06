@@ -1,0 +1,60 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_call:
+
+# Cancel active CI runs for a PR before starting another run
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  FORCE_COLOR: "1"
+
+jobs:
+  pre-commit:
+    name: Pre-commit checks
+    uses: beeware/.github/.github/workflows/pre-commit-run.yml@main
+    with:
+      pre-commit-source: "pre-commit"
+
+  unit-tests:
+    name: Unit tests
+    needs: pre-commit
+    runs-on: macOS-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13-dev" ]
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4.1.7
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v5.2.0
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Set up Forge
+      run: |
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+
+    # Build an example of a native package
+    - name: Build libjpeg
+      run: |
+        forge iOS libjepg
+
+    # Build an example of a simple Python package
+    - name: Build lru-dict
+      run: |
+        forge iOS lru-dict
