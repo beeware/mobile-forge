@@ -169,10 +169,17 @@ def main():
                     "bcrypt",
                     "bitarray",
                     "brotli",
-                    "typed-ast",
                     "yarl",
                 ]
             )
+            if sys.version_info < (3, 13):
+                build_targets.extend(
+                    [
+                        # No longer maintained.
+                        "typed-ast",
+                    ]
+                )
+
     else:
         build_targets = args.build_targets
 

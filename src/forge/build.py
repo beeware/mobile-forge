@@ -70,8 +70,11 @@ class Builder(ABC):
             self.cross_venv.pip_install(
                 self.log_file,
                 requirements,
-                wheels_path=Path.cwd() / "dist",
-                deps_path=Path.cwd() / "deps",
+                paths=[
+                    Path.cwd() / "dist",
+                    Path.cwd() / "deps",
+                    Path.cwd() / "published",
+                ],
                 build=target == "build",
             )
         else:
@@ -507,16 +510,22 @@ class PythonPackageBuilder(Builder):
                 self.cross_venv.pip_install(
                     self.log_file,
                     ["build", "wheel"] + pyproject["build-system"]["requires"],
-                    wheels_path=Path.cwd() / "dist",
-                    deps_path=Path.cwd() / "deps",
+                    paths=[
+                        Path.cwd() / "dist",
+                        Path.cwd() / "deps",
+                        Path.cwd() / "published",
+                    ],
                 )
 
                 # Install the build requirements in the build environment
                 self.cross_venv.pip_install(
                     self.log_file,
                     ["build", "wheel"] + pyproject["build-system"]["requires"],
-                    wheels_path=Path.cwd() / "dist",
-                    deps_path=Path.cwd() / "deps",
+                    paths=[
+                        Path.cwd() / "dist",
+                        Path.cwd() / "deps",
+                        Path.cwd() / "published",
+                    ],
                     build=True,
                 )
         else:

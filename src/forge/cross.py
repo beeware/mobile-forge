@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import itertools
 import os
 import shutil
 import sys
@@ -379,8 +380,7 @@ class CrossVEnv:
         packages,
         update=False,
         build=False,
-        wheels_path=None,
-        deps_path=None,
+        paths=None,
     ):
         """Install packages into the cross environment.
 
@@ -388,9 +388,7 @@ class CrossVEnv:
         :param update: Should the package be updated ("-U")
         :param build: Should the package be installed in the build environment? Defaults
             to installing in the host environment.
-        :param wheels_path: A path to search for additional wheels ("--find-links").
-        :param deps_path: A path to search for additional dependency wheels ("--find-
-            links").
+        :param paths: The paths to search for additional wheels ("--find-links").
         """
         # build-pip is a script; pip is a shim with a hashbang that points
         # at a python interpreter, which we can't invoke with subprocess.
@@ -413,10 +411,12 @@ class CrossVEnv:
             )
             # Update packages if requested
             + (["-U"] if update else [])
-            # Include the local wheels path if provided.
-            + (["--find-links", str(wheels_path)] if wheels_path else [])
-            # Include the local dependencies path if provided.
-            + (["--find-links", str(deps_path)] if deps_path else [])
+            # Include the local wheels paths if provided.
+            + (
+                list(itertools.chain(*(["--find-links", str(path)] for path in paths)))
+                if paths
+                else []
+            )
             # Finally, the list of packages to install.
             + packages,
         )

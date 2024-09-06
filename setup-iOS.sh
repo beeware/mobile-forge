@@ -37,6 +37,7 @@ fi
 mkdir -p deps
 mkdir -p dist
 mkdir -p downloads
+mkdir -p published
 
 if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
     export MOBILE_FORGE_SUPPORT_PATH=$(pwd)/support
