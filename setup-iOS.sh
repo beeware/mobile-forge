@@ -34,6 +34,12 @@ if [ ! -z "$VIRTUAL_ENV" ]; then
     return
 fi
 
+# Create directories required by the script
+mkdir -p deps
+mkdir -p dist
+mkdir -p downloads
+mkdir -p published
+
 if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
     export MOBILE_FORGE_SUPPORT_PATH=$(pwd)/support
 
@@ -97,12 +103,6 @@ if [ ! -d ./venv$PYTHON_VER ]; then
     pip install -U pip
     pip install -U setuptools
     pip install -e . wheel
-
-    # Create directories for storing artefacts
-    mkdir -p deps
-    mkdir -p dist
-    mkdir -p downloads
-    mkdir -p published
 
     echo "Python $PYTHON_VERSION environment has been created."
     echo
