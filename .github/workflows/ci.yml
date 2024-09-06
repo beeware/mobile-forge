@@ -45,18 +45,21 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    # Initial call to the setup script sets up the environment
     - name: Set up Forge
       run: |
         source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
 
     # Build an example of a native package
+    # Calling setup script activates existing environment
     - name: Build libjpeg
       run: |
-        source ./venv$(cut -d- -f1 <<< ${{ matrix.python-version }})/bin/activate
+        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
         forge iOS libjpeg
 
     # Build an example of a simple Python package
+    # Calling setup script activates existing environment
     - name: Build lru-dict
       run: |
-        source ./venv$(cut -d- -f1 <<< ${{ matrix.python-version }})/bin/activate
+        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
         forge iOS lru-dict

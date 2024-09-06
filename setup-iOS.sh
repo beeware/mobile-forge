@@ -34,11 +34,6 @@ if [ ! -z "$VIRTUAL_ENV" ]; then
     return
 fi
 
-mkdir -p deps
-mkdir -p dist
-mkdir -p downloads
-mkdir -p published
-
 if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
     export MOBILE_FORGE_SUPPORT_PATH=$(pwd)/support
 
@@ -98,35 +93,40 @@ if [ ! -d ./venv$PYTHON_VER ]; then
 
     source ./venv$PYTHON_VER/bin/activate
 
+    # Install basic environment artefacts
     pip install -U pip
     pip install -U setuptools
     pip install -e . wheel
 
+    # Create directories for storing artefacts
+    mkdir -p deps
+    mkdir -p dist
+    mkdir -p downloads
+    mkdir -p published
+
     echo "Python $PYTHON_VERSION environment has been created."
+    echo
+    echo "You can now build packages with forge; e.g.:"
+    echo
+    echo "Build all packages for all iOS targets:"
+    echo "   forge iOS"
+    echo
+    echo "Build only the non-python packages, for all iOS targets:"
+    echo "   forge iOS -s non-py"
+    echo
+    echo "Build all packages needed for a smoke test, for all iOS targets:"
+    echo "   forge iOS -s smoke"
+    echo
+    echo "Build lru-dict for all iOS targets:"
+    echo "   forge iOS lru-dict"
+    echo
+    echo "Build lru-dict for the ARM64 device target:"
+    echo "   forge iphoneos:arm64 lru-dict"
+    echo
+    echo "Build all applicable versions of lru-dict for all iOS targets:"
+    echo "   forge iOS --all-versions lru-dict"
     echo
 else
     echo "Using existing Python $PYTHON_VER environment."
     source ./venv$PYTHON_VER/bin/activate
 fi
-
-echo
-echo "You can now build packages with forge; e.g.:"
-echo
-echo "Build all packages for all iOS targets:"
-echo "   forge iOS"
-echo
-echo "Build only the non-python packages, for all iOS targets:"
-echo "   forge iOS -s non-py"
-echo
-echo "Build all packages needed for a smoke test, for all iOS targets:"
-echo "   forge iOS -s smoke"
-echo
-echo "Build lru-dict for all iOS targets:"
-echo "   forge iOS lru-dict"
-echo
-echo "Build lru-dict for the ARM64 device target:"
-echo "   forge iphoneos:arm64 lru-dict"
-echo
-echo "Build all applicable versions of lru-dict for all iOS targets:"
-echo "   forge iOS --all-versions lru-dict"
-echo
