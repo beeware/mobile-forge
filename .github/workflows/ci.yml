@@ -53,7 +53,7 @@ jobs:
     - name: Build libjpeg
       run: |
         source ./venv$(cut -d- -f1 <<< ${{ matrix.python-version }})/bin/activate
-        forge iOS libjepg
+        forge iOS libjpeg
 
     # Build an example of a simple Python package
     - name: Build lru-dict
