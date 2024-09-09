@@ -1,8 +1,3 @@
 package:
   name: Brotli
   version: 1.0.9
-
-build:
-  # This is only needed because CXX is configured to be `clang`, not `clang++`
-  script_env:
-    - LDFLAGS=-lstdc++
