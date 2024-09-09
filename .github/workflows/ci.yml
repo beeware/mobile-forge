@@ -63,3 +63,10 @@ jobs:
       run: |
         source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
         forge iOS lru-dict
+
+    # Build an example of a simple Python package using C++
+    # Calling setup script activates existing environment
+    - name: Build brotli
+      run: |
+        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
+        forge iOS brotli
