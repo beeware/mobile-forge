@@ -324,7 +324,7 @@ class CrossVEnv:
             [
                 str(self.host_python_home / "bin"),
                 str(self.venv_path / "bin"),
-                str(self.venv_path / self.venv_path.name / "bin"),
+                str(self.venv_path / "cross" / "bin"),
                 str(Path.home() / ".cargo/bin"),
                 "/usr/bin",
                 "/bin",
@@ -335,7 +335,7 @@ class CrossVEnv:
         )
 
         # Set VIRTUALENV to the active venv
-        env["VIRTUAL_ENV"] = str(self.venv_path / self.venv_path.name)
+        env["VIRTUAL_ENV"] = str(self.venv_path / "cross")
 
         # Remove PYTHONHOME if it's set
         try:
