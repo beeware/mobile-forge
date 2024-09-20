@@ -4,6 +4,5 @@ def test_basic():
     plain = b"it was the best of times, it was the worst of times"
     compressed = brotli.compress(plain)
 
-    compressed = compressed.hex()
     assert len(compressed) < len(plain)
     assert plain == brotli.decompress(compressed)

@@ -1,4 +1,6 @@
 #!/bin/bash
+set -eu
+
 # This script is a utility for the BeeWare team to publish packages to the
 # https://anaconda.org/beeware repository. It won't be any use to you unless
 # you have write permissions to the `beeware` repo.
@@ -13,10 +15,10 @@
 #   (base) $ ./publish.sh
 #
 
-for f in $(find dist -name "*.whl"); do
-   echo "***** PUBLISH $f ***********************************"
-   anaconda upload -u beeware $f
-   if [[ $? == 0 ]]; then
-	   mv $f published
-   fi
-done
+while IFS= read -r -d '' FILE
+do
+    echo "***** PUBLISH $FILE ***********************************"
+    if anaconda upload -u beeware "$FILE"; then
+        mv "$FILE" published
+    fi
+done <  <(find ./dist -name "*.whl" -print0)
