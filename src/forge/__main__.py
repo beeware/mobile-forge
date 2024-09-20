@@ -10,7 +10,7 @@ from forge.package import Package
 from forge.pypi import get_pypi_versions
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build binary wheels for mobile platforms"
     )
@@ -263,6 +263,8 @@ def main():
 
     print()
 
+    return 1 if failures else 0
+
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
