@@ -2,7 +2,7 @@ import pytest
 
 
 # See https://argon2-cffi.readthedocs.io/en/stable/
-def test_basic(self):
+def test_basic():
     import argon2
 
     ph = argon2.PasswordHasher()

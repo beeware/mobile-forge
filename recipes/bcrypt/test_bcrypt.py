@@ -1,4 +1,4 @@
-def test_basic(self):
+def test_basic():
     import bcrypt
 
     hashed = b"$2b$12$9cwzD/MRnVT7uvkxAQvkIejrif4bwRTGvIRqO7xf4OYtDQ3sl8CWW"

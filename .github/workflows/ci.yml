@@ -8,7 +8,7 @@ on:
 
 # Cancel active CI runs for a PR before starting another run
 concurrency:
-  group: ${{ github.ref }}
+  group: ${{ github.workflow}}-${{ github.ref }}
   cancel-in-progress: true
 
 defaults:

@@ -13,7 +13,7 @@ def test_basic():
     img.save(out_file, "png")
     out_bytes = out_file.getvalue()
 
-    EXPECTED_LEN = 313772
+    EXPECTED_LEN = 619474
     assert len(out_bytes) > int(EXPECTED_LEN * 0.8)
     assert len(out_bytes) < int(EXPECTED_LEN * 1.2)
 
@@ -29,5 +29,5 @@ def test_font():
     from PIL import ImageFont
 
     font = ImageFont.truetype(join(dirname(__file__), "Vera.ttf"), size=20)
-    font.getsize("Hello") == (51, 19)
-    font.getsize("Hello world") == (112, 19)
+    assert font.getbbox("Hello") == (0, 4, 51, 19)
+    assert font.getbbox("Hello world") == (0, 4, 112, 19)

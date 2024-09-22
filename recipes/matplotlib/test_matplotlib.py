@@ -1,4 +1,4 @@
-def test_png(self):
+def test_png():
     import io
 
     import matplotlib.pyplot as plt
