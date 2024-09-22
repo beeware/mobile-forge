@@ -10,7 +10,7 @@ diff -ru matplotlib-3.6.0-orig/setupext.py matplotlib-3.6.0/setupext.py
      ),
      'system_qhull': config.getboolean(
          'libs', 'system_qhull', fallback=sys.platform.startswith('os400')
-@@ -493,8 +493,8 @@
+@@ -493,8 +493,9 @@
 
 
  def add_numpy_flags(ext):
@@ -18,10 +18,11 @@ diff -ru matplotlib-3.6.0-orig/setupext.py matplotlib-3.6.0/setupext.py
 -    ext.include_dirs.append(np.get_include())
 +    import site
 +    ext.include_dirs.append(os.path.abspath(os.path.join(site.getsitepackages()[0], "numpy/core/include")))
++    ext.include_dirs.append(os.path.abspath(os.path.join(site.getsitepackages()[0], "opt/include")))
      ext.define_macros.extend([
          # Ensure that PY_ARRAY_UNIQUE_SYMBOL is uniquely defined for each
          # extension.
-@@ -563,14 +563,15 @@
+@@ -563,14 +564,17 @@
          # appropriate error message if the header indicates a too-old version.
          ext.sources.insert(0, 'src/checkdep_freetype2.c')
          if options.get('system_freetype'):
@@ -42,6 +43,8 @@ diff -ru matplotlib-3.6.0-orig/setupext.py matplotlib-3.6.0/setupext.py
 +            #     alt_exec=['freetype-config'],
 +            #     default_libraries=['freetype'])
 +            ext.libraries.append("freetype")
++            ext.libraries.append("bz2")
++            ext.libraries.append("z")
              ext.define_macros.append(('FREETYPE_BUILD_TYPE', 'system'))
          else:
              src_path = Path('build', f'freetype-{LOCAL_FREETYPE_VERSION}')
