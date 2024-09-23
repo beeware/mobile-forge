@@ -149,3 +149,6 @@ else
     # shellcheck disable=SC1090
     . "./venv$PYTHON_VER/bin/activate"
 fi
+
+# Disable exit on error
+set +e
