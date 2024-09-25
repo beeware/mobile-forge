@@ -16,7 +16,7 @@ build:
     # but doesn't link them into the static library
     - LDFLAGS=-lz -lbz2
   config:
-    - debug=True
+    - debug=true
 
 requirements:
   host:

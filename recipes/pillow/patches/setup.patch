@@ -1,6 +1,10 @@
-diff -ur pillow-10.4.0-orig/setup.py pillow-10.4.0/setup.py
---- pillow-10.4.0-orig/setup.py	2024-07-01 14:02:01
-+++ pillow-10.4.0/setup.py	2024-09-05 14:20:16
+Common subdirectories: pillow-10.4.0-orig/Tests and pillow-10.4.0/Tests
+Common subdirectories: pillow-10.4.0-orig/_custom_build and pillow-10.4.0/_custom_build
+Common subdirectories: pillow-10.4.0-orig/depends and pillow-10.4.0/depends
+Common subdirectories: pillow-10.4.0-orig/docs and pillow-10.4.0/docs
+diff -u pillow-10.4.0-orig/setup.py pillow-10.4.0/setup.py
+--- pillow-10.4.0-orig/setup.py	2024-06-30 23:02:01
++++ pillow-10.4.0/setup.py	2024-09-25 11:15:21
 @@ -422,10 +422,22 @@
                  self.extensions.remove(extension)
                  break
@@ -46,3 +50,17 @@ diff -ur pillow-10.4.0-orig/setup.py pillow-10.4.0/setup.py
          elif (
              sys.platform.startswith("linux")
              or sys.platform.startswith("gnu")
+@@ -618,7 +635,10 @@
+         # FIXME: check /opt/stuff directories here?
+
+         # standard locations
+-        if not self.disable_platform_guessing:
++        # The standard locations aren't standard on iOS et al.
++        if not (
++            self.disable_platform_guessing or sys.platform in {"ios", "tvos", "watchos"}
++        ):
+             _add_directory(library_dirs, "/usr/local/lib")
+             _add_directory(include_dirs, "/usr/local/include")
+
+Common subdirectories: pillow-10.4.0-orig/src and pillow-10.4.0/src
+Common subdirectories: pillow-10.4.0-orig/winbuild and pillow-10.4.0/winbuild
