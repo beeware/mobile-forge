@@ -560,6 +560,10 @@ class PythonPackageBuilder(Builder):
         else:
             output_dir = str(Path.cwd() / "dist")
 
+        config_args = []
+        for config in self.package.meta["build"]["config"]:
+            config_args.extend(["-C", config])
+
         self.cross_venv.run(
             self.log_file,
             [
@@ -570,7 +574,9 @@ class PythonPackageBuilder(Builder):
                 "--wheel",
                 "--outdir",
                 output_dir,
-            ],
+                "-v",
+            ]
+            + config_args,
             cwd=self.build_path,
             env=self.compile_env(**script_env),
         )

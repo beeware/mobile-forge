@@ -65,6 +65,11 @@ properties:
         default: []
         items:
           type: string
+      config:           # Config arguments to pass to python -m build in the form -C value
+        type: array
+        default: []
+        items:
+          type: string
     additionalProperties: false
 
   requirements:
