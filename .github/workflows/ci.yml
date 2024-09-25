@@ -63,6 +63,18 @@ jobs:
       run: |
         source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
 
+    # Build packages that are pre-build dependencies
+    # Calling setup script activates existing environment
+    - name: Build bzip2
+      run: |
+        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
+        forge iOS bzip2
+
+    - name: Build ninja
+      run: |
+        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
+        forge iOS ninja
+
     # Build an example of a native package
     # Calling setup script activates existing environment
     - name: Build libjpeg
