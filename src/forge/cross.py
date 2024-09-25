@@ -251,7 +251,37 @@ class CrossVEnv:
         self.verify()
         print("done.")
         print()
-        print(f"Cross platform-environment {self} created.")
+        print(f"Cross platform environment {self} created.")
+
+        print()
+        print("Updating cross-pip...")
+        self.run(
+            None,
+            [
+                "cross-python",
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--upgrade",
+                "pip",
+            ],
+        )
+
+        print()
+        print("Updating build-pip...")
+        self.run(
+            None,
+            [
+                "build-python",
+                "-m",
+                "pip",
+                "install",
+                "--disable-pip-version-check",
+                "--upgrade",
+                "pip",
+            ],
+        )
 
     def verify(self):
         # python returns the cross-platform host tag.
