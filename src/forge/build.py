@@ -217,6 +217,7 @@ class Builder(ABC):
         ar = sysconfig_data["AR"]
 
         cc = sysconfig_data["CC"]
+        cxx = sysconfig_data["CXX"]
 
         cflags = self.cross_venv.sysconfig_data["CFLAGS"]
 
@@ -258,6 +259,7 @@ class Builder(ABC):
         env = {
             "AR": ar,
             "CC": cc,
+            "CXX": cxx,
             "CFLAGS": cflags,
             "LDFLAGS": ldflags,
             "INSTALL_ROOT": str(self.cross_venv.install_root),
