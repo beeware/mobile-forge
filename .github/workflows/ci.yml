@@ -28,11 +28,23 @@ jobs:
   test:
     name: Test builds
     needs: pre-commit
-    runs-on: macOS-latest
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13-dev" ]
+        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        runs-on: [ "macos-latest", "macos-12" ]
+
+        exclude:
+          # Don't need to run x86 tests on every Python version
+          - python-version: "3.9"
+            runs-on: "macos-12"
+          - python-version: "3.10"
+            runs-on: "macos-12"
+          - python-version: "3.11"
+            runs-on: "macos-12"
+          - python-version: "3.13"
+            runs-on: "macos-12"
 
     steps:
     - name: Checkout
@@ -43,30 +55,60 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5.2.0
       with:
-        python-version: ${{ matrix.python-version }}
+        # -dev suffix is a no-op for published releases
+        python-version: ${{ matrix.python-version }}-dev
 
     # Initial call to the setup script sets up the environment
     - name: Set up Forge
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
+        source ./setup-iOS.sh ${{ matrix.python-version }}
 
-    # Build an example of a native package
+    # Build packages that are pre-build dependencies
+    # Calling setup script activates existing environment
+    - name: Build bzip2
+      run: |
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS bzip2 -vv
+
+    - name: Build ninja
+      run: |
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS ninja -vv
+
+    # Build examples of native packages
     # Calling setup script activates existing environment
     - name: Build libjpeg
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS libjpeg
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS libjpeg -vv
+
+    - name: Build freetype
+      run: |
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS freetype -vv
 
     # Build an example of a simple Python package
     # Calling setup script activates existing environment
     - name: Build lru-dict
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS lru-dict
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS lru-dict -vv
+
+    # Build a package with dependencies on other packages
+    - name: Build pillow
+      run: |
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS pillow -vv
+
+    # Build a package with a complex build system
+    - name: Build numpy
+      run: |
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS numpy -vv
 
     # Build an example of a simple Python package using C++
     # Calling setup script activates existing environment
     - name: Build brotli
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS brotli
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS brotli -vv

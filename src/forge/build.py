@@ -217,6 +217,7 @@ class Builder(ABC):
         ar = sysconfig_data["AR"]
 
         cc = sysconfig_data["CC"]
+        cxx = sysconfig_data["CXX"]
 
         cflags = self.cross_venv.sysconfig_data["CFLAGS"]
 
@@ -258,7 +259,9 @@ class Builder(ABC):
         env = {
             "AR": ar,
             "CC": cc,
+            "CXX": cxx,
             "CFLAGS": cflags,
+            "CXXFLAGS": cflags,
             "LDFLAGS": ldflags,
             "INSTALL_ROOT": str(self.cross_venv.install_root),
         }
@@ -560,6 +563,10 @@ class PythonPackageBuilder(Builder):
         else:
             output_dir = str(Path.cwd() / "dist")
 
+        config_args = []
+        for config in self.package.meta["build"]["config"]:
+            config_args.extend(["-C", config])
+
         self.cross_venv.run(
             self.log_file,
             [
@@ -570,7 +577,9 @@ class PythonPackageBuilder(Builder):
                 "--wheel",
                 "--outdir",
                 output_dir,
-            ],
+                "-v",
+            ]
+            + config_args,
             cwd=self.build_path,
             env=self.compile_env(**script_env),
         )

@@ -149,13 +149,13 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py numpy
                      self._meson_cross_file.write_text(cross_file_data)
                      self._meson_args['setup'].extend(('--cross-file', os.fspath(self._meson_cross_file)))
 +        elif sysconfig_platform.startswith("ios-"):
-+            arch = sysconfig_platform.split("-")[-1]
++            arch = sysconfig_platform.split("-")[-2]
 +            family = "aarch64" if arch == "arm64" else arch
 +            cross_file_data = textwrap.dedent(
 +                f"""
 +                [binaries]
 +                c = [{sysconfig.get_config_var("CC")!r}]
-+                cpp = [{sysconfig.get_config_var("CC")!r}]
++                cpp = [{sysconfig.get_config_var("CXX")!r}]
 +
 +                [host_machine]
 +                system = 'ios'
