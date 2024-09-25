@@ -155,7 +155,7 @@ diff -ru numpy-1.26.0-orig/vendored-meson/meson-python/mesonpy/__init__.py numpy
 +                f"""
 +                [binaries]
 +                c = [{sysconfig.get_config_var("CC")!r}]
-+                cpp = [{sysconfig.get_config_var("CC")!r}]
++                cpp = [{sysconfig.get_config_var("CXX")!r}]
 +
 +                [host_machine]
 +                system = 'ios'
