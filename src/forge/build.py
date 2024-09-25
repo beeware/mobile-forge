@@ -261,6 +261,7 @@ class Builder(ABC):
             "CC": cc,
             "CXX": cxx,
             "CFLAGS": cflags,
+            "CXXFLAGS": cflags,
             "LDFLAGS": ldflags,
             "INSTALL_ROOT": str(self.cross_venv.install_root),
         }
