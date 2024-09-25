@@ -61,61 +61,54 @@ jobs:
     # Initial call to the setup script sets up the environment
     - name: Set up Forge
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
+        source ./setup-iOS.sh ${{ matrix.python-version }}
 
     # Build packages that are pre-build dependencies
     # Calling setup script activates existing environment
     - name: Build bzip2
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS bzip2
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS bzip2 -vv
 
     - name: Build ninja
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS ninja
-
-    # Build an example of a native package
-    # Calling setup script activates existing environment
-    - name: Build libjpeg
-      run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS libjpeg
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS ninja -vv
 
     # Build examples of native packages
     # Calling setup script activates existing environment
-    - name: Build freetype
+    - name: Build libjpeg
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS freetype
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS libjpeg -vv
 
     - name: Build freetype
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS freetype
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS freetype -vv
 
     # Build an example of a simple Python package
     # Calling setup script activates existing environment
     - name: Build lru-dict
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS lru-dict
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS lru-dict -vv
 
     # Build a package with dependencies on other packages
     - name: Build pillow
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS pillow
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS pillow -vv
 
     # Build a package with a complex build system
     - name: Build numpy
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS numpy
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS numpy -vv
 
     # Build an example of a simple Python package using C++
     # Calling setup script activates existing environment
     - name: Build brotli
       run: |
-        source ./setup-iOS.sh $(cut -d- -f1 <<< ${{ matrix.python-version }})
-        forge iOS brotli
+        source ./setup-iOS.sh ${{ matrix.python-version }}
+        forge iOS brotli -vv
