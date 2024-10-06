@@ -22,8 +22,6 @@ jobs:
   pre-commit:
     name: Pre-commit checks
     uses: beeware/.github/.github/workflows/pre-commit-run.yml@main
-    with:
-      pre-commit-source: "pre-commit"
 
   test:
     name: Test builds
