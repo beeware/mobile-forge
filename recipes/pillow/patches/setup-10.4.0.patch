@@ -1,12 +1,16 @@
-diff -ur pillow-11.0.0-orig/setup.py pillow-11.0.0/setup.py
---- pillow-11.0.0-orig/setup.py	2024-10-15 13:58:32
-+++ pillow-11.0.0/setup.py	2024-10-17 06:56:00
-@@ -445,10 +445,22 @@
+Common subdirectories: pillow-10.4.0-orig/Tests and pillow-10.4.0/Tests
+Common subdirectories: pillow-10.4.0-orig/_custom_build and pillow-10.4.0/_custom_build
+Common subdirectories: pillow-10.4.0-orig/depends and pillow-10.4.0/depends
+Common subdirectories: pillow-10.4.0-orig/docs and pillow-10.4.0/docs
+diff -u pillow-10.4.0-orig/setup.py pillow-10.4.0/setup.py
+--- pillow-10.4.0-orig/setup.py	2024-06-30 23:02:01
++++ pillow-10.4.0/setup.py	2024-09-25 11:15:21
+@@ -422,10 +422,22 @@
                  self.extensions.remove(extension)
                  break
 
--    def get_macos_sdk_path(self) -> str | None:
-+    def get_apple_sdk_path(self) -> str | None:
+-    def get_macos_sdk_path(self):
++    def get_apple_sdk_path(self):
          try:
 +            sdk = {
 +                ("ios", False): ["--sdk", "iphoneos"],
@@ -26,7 +30,7 @@ diff -ur pillow-11.0.0-orig/setup.py pillow-11.0.0/setup.py
                  .strip()
                  .decode("latin1")
              )
-@@ -606,13 +618,18 @@
+@@ -580,13 +592,18 @@
                  _add_directory(library_dirs, "/usr/X11/lib")
                  _add_directory(include_dirs, "/usr/X11/include")
 
@@ -46,7 +50,7 @@ diff -ur pillow-11.0.0-orig/setup.py pillow-11.0.0/setup.py
          elif (
              sys.platform.startswith("linux")
              or sys.platform.startswith("gnu")
-@@ -644,7 +661,10 @@
+@@ -618,7 +635,10 @@
          # FIXME: check /opt/stuff directories here?
 
          # standard locations
@@ -57,3 +61,6 @@ diff -ur pillow-11.0.0-orig/setup.py pillow-11.0.0/setup.py
 +        ):
              _add_directory(library_dirs, "/usr/local/lib")
              _add_directory(include_dirs, "/usr/local/include")
+
+Common subdirectories: pillow-10.4.0-orig/src and pillow-10.4.0/src
+Common subdirectories: pillow-10.4.0-orig/winbuild and pillow-10.4.0/winbuild
