@@ -64,8 +64,8 @@ if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
                 3.9)  SUPPORT_REVISION=14 ;;
                 3.10) SUPPORT_REVISION=10 ;;
                 3.11) SUPPORT_REVISION=5 ;;
-                3.12) SUPPORT_REVISION=4 ;;
-                3.13) SUPPORT_REVISION=1 ;;
+                3.12) SUPPORT_REVISION=5 ;;
+                3.13) SUPPORT_REVISION=2 ;;
                 *)
                     echo "No default support revision for $PYTHON_VER is known; it must be specified manually"
                     return
