@@ -12,12 +12,17 @@ Usage
 This repo contains an activation script that will configure your environment so
 it's ready to use. To set up a build environment:
 
-1. Clone this repository::
+1. Ensure you have ``git-lfs`` installed (``git lfs --version`` should return a
+   version number, not an error). ``git-lfs`` is available from
+   `https://git-lfs.com <https://git-lfs.com>`_, or by running ``brew install
+   git-lfs``.
+
+2. Clone this repository::
 
     $ git clone https://github.com/beeware/mobile-forge.git
     $ cd mobile-forge
 
-2. Run the script for the Python version you want to use, providing the support
+3. Run the script for the Python version you want to use, providing the support
    revision::
 
     $ source ./setup-iOS.sh 3.11
