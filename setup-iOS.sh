@@ -61,11 +61,11 @@ if [ -z "$PYTHON_APPLE_SUPPORT" ]; then
     if [ ! -d "$MOBILE_FORGE_SUPPORT_PATH/$PYTHON_VER/iOS" ]; then
         if [ -z "$2" ]; then
             case $PYTHON_VER in
-                3.9)  SUPPORT_REVISION=14 ;;
-                3.10) SUPPORT_REVISION=10 ;;
-                3.11) SUPPORT_REVISION=5 ;;
-                3.12) SUPPORT_REVISION=5 ;;
-                3.13) SUPPORT_REVISION=2 ;;
+                3.9)  SUPPORT_REVISION=15 ;;
+                3.10) SUPPORT_REVISION=11 ;;
+                3.11) SUPPORT_REVISION=6 ;;
+                3.12) SUPPORT_REVISION=6 ;;
+                3.13) SUPPORT_REVISION=3 ;;
                 *)
                     echo "No default support revision for $PYTHON_VER is known; it must be specified manually"
                     return
