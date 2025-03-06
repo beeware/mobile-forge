@@ -31,7 +31,7 @@ dependencies = [
     # Use a post 1.5.0 release that includes the merged iOS patch
     "crossenv @ git+https://github.com/benfogle/crossenv@c801a526403a06f653939a0c45534d7703f9066f",
     "httpx == 0.28.1",
-    "Jinja2 == 3.1.5",
+    "Jinja2 == 3.1.6",
     "jsonschema == 4.23.0",
     "packaging == 24.2",
     "PyYAML == 6.0.2",
