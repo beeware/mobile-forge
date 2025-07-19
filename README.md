@@ -12,7 +12,7 @@ it's ready to use. To set up a build environment:
 
 1. Ensure you have `git-lfs` installed (`git lfs --version` should return a
    version number, not an error). `git-lfs` is available from
-   [https://git-lfs.com](https://git-lfs.com>), or by running
+   [https://git-lfs.com](https://git-lfs.com), or by running
    `brew install git-lfs`.
 
 2. Clone this repository:
@@ -39,13 +39,13 @@ you can run.
 If a virtual environment already exists, it will be activated, and the same hints
 displayed.
 
-`lru-dict` is a good first package to try compiling::
+`lru-dict` is a good first package to try compiling:
 
 ```text
   (venv3.11) $ forge iOS lru-dict
 ```
 
-Or, to build a wheel for a single architecture::
+Or, to build a wheel for a single architecture:
 
 ```text
   (venv3.11) $ forge iphonesimulator:12.0:arm64 lru-dict
@@ -73,7 +73,7 @@ The Mobile Forge setup script will download a support package for any supported
 Python version. The version that is downloaded is hard-coded in the setup
 script. To use a specific revision rather than the default, add the revision
 number as an additional argument to the setup script. For example, to use
-revision 4 of the 3.11 support package, run::
+revision 4 of the 3.11 support package, run:
 
 ```text
 source ./setup-iOS.sh 3.11 4
@@ -170,8 +170,8 @@ package name and version: e.g.:
 
 ```text
 package:
-    name: blis
-    version: 0.4.1
+  name: blis
+  version: 0.4.1
 ```
 
 If this doesn't result in a successful build, it will likely be for one of the following
@@ -215,8 +215,8 @@ architecture and machine type; however, it doesn't currently recognize the host 
 used by Apple. If you get the error:
 
 ```text
-    checking host system type... Invalid configuration `arm64-apple-ios': machine `arm64-apple' not recognized
-    configure: error: /bin/sh config/config.sub arm64-apple-ios failed
+checking host system type... Invalid configuration `arm64-apple-ios': machine `arm64-apple' not recognized
+configure: error: /bin/sh config/config.sub arm64-apple-ios failed
 ```
 
 you will need to patch `config.sub`. There are several examples of patched `config.sub`
