@@ -1,3 +1,21 @@
+# This project has been semi-retired
+
+As of August 2025, it is possible to use ``cibuildwheel`` to compile and test
+iOS wheels. As a result, we are no longer actively working on this project.
+
+We have no plans to add Python 3.14+ support for any of the recipes, to bump any
+of the versions currently being packaged, or to add any new recipes.
+
+If you want iOS support for a package, we encourage you to open a feature
+request on the upstream project's repository, and work with the maintainers of
+that project to add official iOS (and Android) support to those projects.
+
+The project has not been fully archived so that we can maintain existing levels of
+support for iOS on Python versions prior to 3.13 (the first Python release with
+official iOS support).
+
+---
+
 # Mobile Forge
 
 This is a forge-like environment that can be used to build wheels for mobile
