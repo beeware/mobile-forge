@@ -498,6 +498,13 @@ class PythonPackageBuilder(Builder):
     def prepare(self, clean=True):
         super().prepare(clean=clean)
 
+        # Pins some dependencies as at end of 2024. This project is entirely to
+        # support historical builds, on historical Python versions; as such,
+        # we're isolating ourself from drift in tools over time.
+
+        setuptools_deps = ["setuptools==75.6.0"]
+        build_wheel_deps = ["build==1.2.2.post1", "wheel==0.45.1"]
+
         # Install any build requirements (PEP517 or otherwise)
         if (self.build_path / "pyproject.toml").is_file():
             log(
@@ -512,7 +519,7 @@ class PythonPackageBuilder(Builder):
                 # Install the build requirements in the cross environment
                 self.cross_venv.pip_install(
                     self.log_file,
-                    ["build", "wheel"] + pyproject["build-system"]["requires"],
+                    build_wheel_deps + pyproject["build-system"]["requires"],
                     paths=[
                         Path.cwd() / "dist",
                         Path.cwd() / "deps",
@@ -523,7 +530,7 @@ class PythonPackageBuilder(Builder):
                 # Install the build requirements in the build environment
                 self.cross_venv.pip_install(
                     self.log_file,
-                    ["build", "wheel"] + pyproject["build-system"]["requires"],
+                    build_wheel_deps + pyproject["build-system"]["requires"],
                     paths=[
                         Path.cwd() / "dist",
                         Path.cwd() / "deps",
@@ -537,14 +544,14 @@ class PythonPackageBuilder(Builder):
                 f"\n[{self.cross_venv}] Installing non-PEP517 build requirements",
             )
             # Ensure the cross environment has the most recent tools
-            self.cross_venv.pip_install(self.log_file, ["setuptools"], update=True)
-            self.cross_venv.pip_install(self.log_file, ["build", "wheel"])
+            self.cross_venv.pip_install(self.log_file, setuptools_deps, update=True)
+            self.cross_venv.pip_install(self.log_file, build_wheel_deps)
 
             # Ensure the build environment has the most recent tools
             self.cross_venv.pip_install(
-                self.log_file, ["setuptools"], update=True, build=True
+                self.log_file, setuptools_deps, update=True, build=True
             )
-            self.cross_venv.pip_install(self.log_file, ["build", "wheel"], build=True)
+            self.cross_venv.pip_install(self.log_file, build_wheel_deps, build=True)
 
     def _build(self):
         # Set up any additional environment variables needed in the script environment.
