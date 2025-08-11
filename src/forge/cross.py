@@ -255,6 +255,9 @@ class CrossVEnv:
 
         print()
         print("Updating cross-pip...")
+        # Pip is pinned to 24.3.1, the last release in 2024. This project is
+        # entirely to support historical builds, on historical Python versions;
+        # as such, we're isolating ourself from drift in tools over time.
         self.run(
             None,
             [
@@ -264,7 +267,7 @@ class CrossVEnv:
                 "install",
                 "--disable-pip-version-check",
                 "--upgrade",
-                "pip",
+                "pip==24.3.1",
             ],
         )
 
@@ -279,7 +282,7 @@ class CrossVEnv:
                 "install",
                 "--disable-pip-version-check",
                 "--upgrade",
-                "pip",
+                "pip==24.3.1",
             ],
         )
 
