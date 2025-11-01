@@ -230,7 +230,8 @@ def main() -> int:
             # subsequent builds will be isolated by
 
             first = True
-            # Packages that generate -py3-none-any wheels only need to be built on a single platform.
+            # Packages that generate -py3-none-any wheels only need to be built
+            # on a single platform.
             if package_name_or_recipe in py_any_targets:
                 build_platforms = platforms[:1]
             else:
