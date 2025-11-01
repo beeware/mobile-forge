@@ -7,7 +7,7 @@ name = "mobile-forge"
 version = "2024.0.0"
 description = "A tool to manage building cross-platform binary wheels for mobile devices"
 readme = { file = "README.md", content-type = "text/x-rst"}
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [
     {name = "Russell Keith-Magee", email = "russell@keith-magee.com"}
@@ -20,10 +20,10 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3 :: Only",
     "Topic :: Software Development",
 ]
@@ -54,14 +54,23 @@ Tracker = "https://github.com/beeware/briefcase/issues"
 forge = "forge.__main__:main"
 forge-env = "forge.cross:main"
 
-[tool.isort]
-profile = "black"
-skip_glob = [
-    "docs/conf.py",
-    "venv*",
-    "local",
+[tool.ruff.lint]
+# In addition to the default rules, these additional rules will be used:
+extend-select = [
+    "E",      # pycodestyle
+    "W",      # pycodestyle
+    "F",      # pyflakes
+    "UP",     # pyupgrade
+    "B",      # flake8-bugbear
+    "YTT",    # flake8-2020
+    "ASYNC",  # flake8-async
+    "C4",     # flake8-comprehensions
+    "I",      # isort
+    # The SIM rules are *very* opinionated, and don't necessarily make for better code.
+    # They may be worth occasionally turning on just to see if something could actually
+    # use improvement.
+    # "SIM",    # flake8-simplify
 ]
-multi_line_output = 3
 
 [tool.codespell]
 skip = '.git,*.pdf,*.svg'

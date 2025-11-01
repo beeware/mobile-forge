@@ -30,13 +30,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: [ "3.9", "3.10", "3.11", "3.12", "3.13" ]
+        python-version: [ "3.10", "3.11", "3.12", "3.13" ]
         runs-on: [ "macos-latest" ]
 
         exclude:
           # Don't need to run x86 tests on every Python version
           - python-version: "3.13"
-            runs-on: "macos-13"
+            runs-on: "macos-15-intel"
 
     steps:
     - name: Checkout
