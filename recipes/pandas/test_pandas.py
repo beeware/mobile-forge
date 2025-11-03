@@ -5,4 +5,9 @@ def test_basic():
         [("alpha", 1), ("bravo", 2), ("charlie", 3)],
         columns=["Letter", "Number"],
     )
-    assert df.to_csv() == (",Letter,Number\n0,alpha,1\n1,bravo,2\n2,charlie,3\n")
+    assert df.to_csv() == (
+        ",Letter,Number\n",
+        "0,alpha,1\n",
+        "1,bravo,2\n",
+        "2,charlie,3\n",
+    )
