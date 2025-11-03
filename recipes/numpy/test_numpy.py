@@ -15,8 +15,8 @@ def test_performance():
     b = np.random.rand(SIZE, SIZE)
     np.dot(a, b)
 
-    # With OpenBLAS, the test devices take at most 0.4 seconds. Without OpenBLAS, they take
-    # at least 1.0 seconds.
+    # With OpenBLAS, the test devices take at most 0.4 seconds.
+    # Without OpenBLAS, they take at least 1.0 seconds.
     duration = time() - start_time
     print(f"{duration:.3f}")
     assert duration < 0.7

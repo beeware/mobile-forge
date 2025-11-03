@@ -6,5 +6,8 @@ def test_basic():
         columns=["Letter", "Number"],
     )
     assert df.to_csv() == (
-        ",Letter,Number\n" "0,alpha,1\n" "1,bravo,2\n" "2,charlie,3\n"
+        ",Letter,Number\n",
+        "0,alpha,1\n",
+        "1,bravo,2\n",
+        "2,charlie,3\n",
     )

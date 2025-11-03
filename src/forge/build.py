@@ -221,11 +221,13 @@ class Builder(ABC):
 
         cflags = self.cross_venv.sysconfig_data["CFLAGS"]
 
-        # Pre Python 3.11 versions included BZip2 and XZ includes in CFLAGS. Remove them.
+        # Pre Python 3.11 versions included BZip2 and XZ includes in CFLAGS.
+        # The should be removed.
         cflags = re.sub(r"-I.*/merge/iOS/.*/bzip2-.*/include", "", cflags)
         cflags = re.sub(r"-I.*/merge/iOS/.*/xs-.*/include", "", cflags)
 
-        # Replace any hard-coded reference to --sysroot=<sysroot> with the actual reference
+        # Replace any hard-coded reference to --sysroot=<sysroot>
+        # with the actual reference
         cflags = re.sub(r"--sysroot=\w+", f"--sysroot={sdk_root}", cflags)
 
         # Add the install root and SDK root includes
@@ -240,7 +242,8 @@ class Builder(ABC):
 
         ldflags = self.cross_venv.sysconfig_data["LDFLAGS"]
 
-        # Replace any hard-coded reference to -isysroot <sysroot> with the actual reference
+        # Replace any hard-coded reference to -isysroot <sysroot>
+        # with the actual reference
         ldflags = re.sub(r"-isysroot \w+", f"-isysroot={sdk_root}", ldflags)
 
         # Add the framework path
@@ -489,7 +492,10 @@ class PythonPackageBuilder(Builder):
         return (
             Path.cwd()
             / "logs"
-            / f"{self.package.name}-{self.package.version}-cp3{sys.version_info.minor}-{self.cross_venv.tag}.log"
+            / (
+                f"{self.package.name}-{self.package.version}-"
+                f"cp3{sys.version_info.minor}-{self.cross_venv.tag}.log"
+            )
         )
 
     def download_source_url(self):
