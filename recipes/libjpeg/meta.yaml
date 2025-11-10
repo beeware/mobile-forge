@@ -3,7 +3,7 @@ package:
   version: 1.5.3
 
 source:
-  url: https://downloads.sourceforge.net/project/libjpeg-turbo/{version}/libjpeg-turbo-{version}.tar.gz
+  url: https://github.com/libjpeg-turbo/libjpeg-turbo/releases/download/{version}/libjpeg-turbo-{version}.tar.gz
 
 patches:
   - config.patch
