@@ -32,7 +32,7 @@ dependencies = [
     "crossenv @ git+https://github.com/benfogle/crossenv@c801a526403a06f653939a0c45534d7703f9066f",
     "httpx == 0.28.1",
     "Jinja2 == 3.1.6",
-    "jsonschema == 4.25.0",
+    "jsonschema == 4.25.1",
     "packaging == 25.0",
     "PyYAML == 6.0.3",
     "tomli >= 2.0,< 3.0; python_version <= '3.10'",
