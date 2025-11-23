@@ -6,9 +6,10 @@ build-backend = "setuptools.build_meta"
 name = "mobile-forge"
 version = "2024.0.0"
 description = "A tool to manage building cross-platform binary wheels for mobile devices"
-readme = { file = "README.md", content-type = "text/x-rst"}
+readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license_files = [ "LICENSE" ]
 authors = [
     {name = "Russell Keith-Magee", email = "russell@keith-magee.com"}
 ]
