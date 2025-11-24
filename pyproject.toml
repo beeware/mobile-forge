@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools >= 60"]
+requires = ["setuptools == 80.9.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mobile-forge"
 version = "2024.0.0"
 description = "A tool to manage building cross-platform binary wheels for mobile devices"
-readme = { file = "README.md", content-type = "text/x-rst"}
+readme = "README.md"
 requires-python = ">=3.10"
-license = { file = "LICENSE" }
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [
     {name = "Russell Keith-Magee", email = "russell@keith-magee.com"}
 ]
@@ -18,7 +19,6 @@ maintainers = [
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -28,8 +28,7 @@ classifiers = [
     "Topic :: Software Development",
 ]
 dependencies = [
-    # Use a post 1.5.0 release that includes the merged iOS patch
-    "crossenv @ git+https://github.com/benfogle/crossenv@c801a526403a06f653939a0c45534d7703f9066f",
+    "crossenv == 1.6.1",
     "httpx == 0.28.1",
     "Jinja2 == 3.1.6",
     "jsonschema == 4.25.1",
@@ -39,9 +38,13 @@ dependencies = [
     "wheel == 0.45.1",
 ]
 
-[project.optional-dependencies]
-dev = [
+[dependency-groups]
+pre-commit = [
     "pre-commit == 4.5.0",
+]
+
+dev = [
+    {include-group = "pre-commit"},
 ]
 
 [project.urls]
