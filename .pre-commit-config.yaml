@@ -31,3 +31,4 @@ repos:
     - id: codespell
       additional_dependencies:
         - tomli
+      args: ["--skip=CODE_OF_CONDUCT.md"]
