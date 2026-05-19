@@ -30,6 +30,9 @@ if TYPE_CHECKING:
     from forge.package import Package
 
 
+SOURCE_DOWNLOAD_TIMEOUT = httpx.Timeout(60.0, connect=10.0)
+
+
 class Builder(ABC):
     def __init__(self, cross_venv: CrossVEnv, package: Package):
         self.cross_venv = cross_venv
@@ -88,7 +91,12 @@ class Builder(ABC):
         url = self.download_source_url()
         log(self.log_file, f"Downloading {url}...", end="", flush=True)
         self.source_archive_path.parent.mkdir(parents=True, exist_ok=True)
-        with httpx.stream("GET", url, follow_redirects=True) as response:
+        with httpx.stream(
+            "GET",
+            url,
+            follow_redirects=True,
+            timeout=SOURCE_DOWNLOAD_TIMEOUT,
+        ) as response:
             with self.source_archive_path.open("wb") as f:
                 for i, chunk in enumerate(response.iter_bytes()):
                     if i % 100 == 0:
