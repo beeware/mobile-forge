@@ -40,7 +40,7 @@ dependencies = [
 
 [dependency-groups]
 pre-commit = [
-    "pre-commit == 4.6.0",
+    "pre-commit == 4.6.1",
 ]
 
 dev = [
@@ -74,6 +74,13 @@ extend-select = [
     # use improvement.
     # "SIM",    # flake8-simplify
 ]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignores needed to pass the Ruff 0.16 update.
+"recipes/aiohttp/test_aiohttp.py" = ["SIM117"]
+"src/forge/build.py" = ["SIM117", "BLE001"]
+"src/forge/cross.py" = ["RUF012", "S102"]
+"src/forge/pypi.py" = ["DTZ005"]
 
 [tool.codespell]
 skip = '.git,*.pdf,*.svg'

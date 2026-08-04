@@ -179,14 +179,13 @@ class Builder(ABC):
             log(self.log_file, "No patches to apply.")
 
     def prepare(self, clean=True):
-        if clean and self.build_path.is_dir():
-            if clean:
-                log(self.log_file, f"\n[{self.cross_venv}] Clean up old builds")
-                log(
-                    self.log_file,
-                    f"Removing {self.build_path.relative_to(Path.cwd())}...",
-                )
-                shutil.rmtree(self.build_path)
+        if clean and self.build_path.is_dir() and clean:
+            log(self.log_file, f"\n[{self.cross_venv}] Clean up old builds")
+            log(
+                self.log_file,
+                f"Removing {self.build_path.relative_to(Path.cwd())}...",
+            )
+            shutil.rmtree(self.build_path)
 
         if not self.source_archive_path.is_file():
             log(self.log_file, f"\n[{self.cross_venv}] Download package sources")
