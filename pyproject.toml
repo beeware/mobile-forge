@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools == 84.0.0"]
+requires = ["setuptools == 84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -28,7 +28,7 @@ classifiers = [
     "Topic :: Software Development",
 ]
 dependencies = [
-    "crossenv == 1.6.1",
+    "crossenv == 1.6.2",
     "httpx == 0.28.1",
     "Jinja2 == 3.1.6",
     "jsonschema == 4.26.0",
