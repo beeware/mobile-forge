@@ -38,11 +38,6 @@ jobs:
         python-version: [ "3.11", "3.12", "3.13" ]
         runs-on: [ "macos-26" ]
 
-        include:
-          # Don't need to run x86 tests on every Python version
-          - python-version: "3.13"
-            runs-on: "macos-15-intel"
-
     steps:
     - name: Checkout
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
